@@ -8,6 +8,7 @@ import { CATEGORIES, CATEGORY_LABELS } from '@/lib/types';
 import { CATEGORY_STYLES } from '@/lib/colors';
 import { inferCategory } from '@/lib/categorize';
 import { DAY_MINUTES, formatDate, parseDate, timeOptions, todayStr } from '@/lib/time';
+import { holidayName, isJapaneseHoliday } from '@/lib/holidays';
 import { useApp } from '@/lib/store';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
@@ -27,20 +28,33 @@ export default function BulkRegisterDialog({ open, onClose }: Props) {
   const [endMin, setEndMin] = useState(10 * 60 + 30);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<Category | 'auto'>('auto');
+  const [excludeHolidays, setExcludeHolidays] = useState(true);
 
   const resolvedCategory: Category = category === 'auto' ? inferCategory(title) : category;
 
   const preview = useMemo(() => {
-    if (!startDate || !endDate) return { count: 0, firstDates: [] as string[] };
+    if (!startDate || !endDate) {
+      return { count: 0, firstDates: [] as string[], skipped: [] as { date: string; name: string }[] };
+    }
     const sd = parseDate(startDate);
     const ed = parseDate(endDate);
-    if (sd > ed) return { count: 0, firstDates: [] };
-    const list = eachDayOfInterval({ start: sd, end: ed }).filter((d) => days[d.getDay()]);
+    if (sd > ed) return { count: 0, firstDates: [], skipped: [] };
+    const weekdayMatched = eachDayOfInterval({ start: sd, end: ed }).filter((d) => days[d.getDay()]);
+    const kept: Date[] = [];
+    const skipped: { date: string; name: string }[] = [];
+    for (const d of weekdayMatched) {
+      if (excludeHolidays && isJapaneseHoliday(d)) {
+        skipped.push({ date: formatDate(d), name: holidayName(d) ?? '祝日' });
+      } else {
+        kept.push(d);
+      }
+    }
     return {
-      count: list.length,
-      firstDates: list.slice(0, 3).map((d) => formatDate(d)),
+      count: kept.length,
+      firstDates: kept.slice(0, 3).map((d) => formatDate(d)),
+      skipped,
     };
-  }, [startDate, endDate, days]);
+  }, [startDate, endDate, days, excludeHolidays]);
 
   if (!open) return null;
 
@@ -54,7 +68,9 @@ export default function BulkRegisterDialog({ open, onClose }: Props) {
     const sd = parseDate(startDate);
     const ed = parseDate(endDate);
     if (sd > ed) return;
-    const dates = eachDayOfInterval({ start: sd, end: ed }).filter((d) => days[d.getDay()]);
+    const dates = eachDayOfInterval({ start: sd, end: ed })
+      .filter((d) => days[d.getDay()])
+      .filter((d) => !(excludeHolidays && isJapaneseHoliday(d)));
     if (dates.length === 0) return;
     const groupId = `grp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     addEvents(
@@ -125,6 +141,16 @@ export default function BulkRegisterDialog({ open, onClose }: Props) {
             ))}
           </div>
         </div>
+
+        <label className="mt-3 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={excludeHolidays}
+            onChange={(e) => setExcludeHolidays(e.target.checked)}
+            className="h-4 w-4 accent-slate-700"
+          />
+          <span className="text-slate-600 dark:text-slate-300">祝日を除く（日本の祝日・振替休日）</span>
+        </label>
 
         <div className="mt-3 grid grid-cols-2 gap-3">
           <label className="block text-sm">
@@ -210,6 +236,13 @@ export default function BulkRegisterDialog({ open, onClose }: Props) {
             </>
           ) : (
             '条件に合う日付がありません'
+          )}
+          {preview.skipped.length > 0 && (
+            <div className="mt-1 text-slate-500">
+              祝日 {preview.skipped.length} 件を除外（
+              {preview.skipped.slice(0, 3).map((s) => `${s.date} ${s.name}`).join(' / ')}
+              {preview.skipped.length > 3 && ' ...'}）
+            </div>
           )}
         </div>
 
