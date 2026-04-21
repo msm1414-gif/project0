@@ -13,6 +13,14 @@ import { useApp } from '@/lib/store';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
+const PERIODS: { label: string; start: number; end: number }[] = [
+  { label: '1限', start: 8 * 60 + 30, end: 10 * 60 },
+  { label: '2限', start: 10 * 60 + 25, end: 11 * 60 + 55 },
+  { label: '3限', start: 13 * 60 + 15, end: 14 * 60 + 45 },
+  { label: '4限', start: 15 * 60 + 10, end: 16 * 60 + 40 },
+  { label: '5限', start: 17 * 60 + 5, end: 18 * 60 + 35 },
+];
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -151,6 +159,34 @@ export default function BulkRegisterDialog({ open, onClose }: Props) {
           />
           <span className="text-slate-600 dark:text-slate-300">祝日を除く（日本の祝日・振替休日）</span>
         </label>
+
+        <div className="mt-3">
+          <div className="text-sm text-slate-600 dark:text-slate-300">時限ショートカット</div>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {PERIODS.map((p) => {
+              const active = startMin === p.start && endMin === p.end;
+              return (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => {
+                    setStartMin(p.start);
+                    setEndMin(p.end);
+                  }}
+                  className={clsx(
+                    'rounded border px-2.5 py-1 text-xs',
+                    active
+                      ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
+                      : 'border-slate-300 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800',
+                  )}
+                  title={`${Math.floor(p.start / 60)}:${String(p.start % 60).padStart(2, '0')}–${Math.floor(p.end / 60)}:${String(p.end % 60).padStart(2, '0')}`}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3">
           <label className="block text-sm">
