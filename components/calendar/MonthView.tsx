@@ -59,7 +59,7 @@ export default function MonthView({ anchor }: Props) {
             >
               <div
                 className={clsx(
-                  'self-end text-[11px] font-semibold',
+                  'self-center text-[11px] font-semibold',
                   isToday &&
                     'flex h-5 w-5 items-center justify-center rounded-full bg-sky-500 text-white',
                 )}

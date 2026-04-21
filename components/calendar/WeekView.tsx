@@ -43,12 +43,13 @@ export default function WeekView({ anchor }: Props) {
                 : 'border-slate-200 dark:border-slate-700',
             )}
           >
-            <div className="flex items-baseline justify-between">
+            <div className="flex flex-col items-center">
               <div className="text-[11px] text-slate-500">{WEEKDAYS[i]}</div>
               <div
                 className={clsx(
                   'text-sm font-semibold',
-                  isToday && 'text-sky-600 dark:text-sky-400',
+                  isToday &&
+                    'flex h-6 w-6 items-center justify-center rounded-full bg-sky-500 text-white',
                 )}
               >
                 {dateObj.getDate()}
