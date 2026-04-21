@@ -99,38 +99,39 @@ export default function TimeboxGrid({ date }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  const fivePx = minutesToPx(5);
+  const halfPx = minutesToPx(30);
+  const hourPx = minutesToPx(60);
+
   return (
     <div className="relative flex">
-      <div className="w-[52px] shrink-0 select-none text-right text-[11px] text-slate-400">
+      <div className="w-[60px] shrink-0 select-none text-right text-[11px] font-medium text-slate-500 dark:text-slate-400">
         {Array.from({ length: 24 }, (_, h) => (
-          <div key={h} style={{ height: PX_PER_HOUR }} className="pr-2 pt-0">
-            {h === 0 ? '' : formatMinutes(h * 60)}
+          <div key={h} style={{ height: PX_PER_HOUR }} className="relative pr-2">
+            {h === 0 ? null : (
+              <span className="absolute right-2 -top-2 bg-white px-1 dark:bg-slate-900">
+                {formatMinutes(h * 60)}
+              </span>
+            )}
           </div>
         ))}
       </div>
       <div
         ref={gridRef}
-        className="relative flex-1 border-l border-slate-200 dark:border-slate-700"
-        style={{ height: GRID_HEIGHT }}
+        className="relative flex-1 border-l border-slate-300 dark:border-slate-600"
+        style={{
+          height: GRID_HEIGHT,
+          backgroundImage: [
+            `repeating-linear-gradient(to bottom, rgba(148,163,184,0.20) 0 1px, transparent 1px ${fivePx}px)`,
+            `repeating-linear-gradient(to bottom, rgba(148,163,184,0.45) 0 1px, transparent 1px ${halfPx}px)`,
+            `repeating-linear-gradient(to bottom, rgba(100,116,139,0.65) 0 1px, transparent 1px ${hourPx}px)`,
+          ].join(', '),
+        }}
         onPointerDown={onGridPointerDown}
         onPointerMove={onGridPointerMove}
         onPointerUp={onGridPointerUp}
         onPointerCancel={onGridPointerUp}
       >
-        {Array.from({ length: 24 }, (_, h) => (
-          <div
-            key={h}
-            className="absolute left-0 right-0 border-t border-slate-200 dark:border-slate-700"
-            style={{ top: minutesToPx(h * 60) }}
-          />
-        ))}
-        {Array.from({ length: 24 }, (_, h) => (
-          <div
-            key={`half-${h}`}
-            className="absolute left-0 right-0 border-t border-dashed border-slate-100 dark:border-slate-800"
-            style={{ top: minutesToPx(h * 60 + 30) }}
-          />
-        ))}
 
         {selection && (
           <div

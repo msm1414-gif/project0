@@ -1,4 +1,4 @@
-export const PX_PER_HOUR = 48;
+export const PX_PER_HOUR = 96;
 export const PX_PER_MINUTE = PX_PER_HOUR / 60;
 export const SNAP_MINUTES = 5;
 export const MIN_EVENT_MINUTES = 5;

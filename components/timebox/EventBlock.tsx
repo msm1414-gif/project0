@@ -103,7 +103,7 @@ export default function EventBlock({ event, onChange, onClick }: Props) {
     <div
       ref={ref}
       className={clsx(
-        'absolute left-[52px] right-1 rounded-md shadow-sm cursor-grab active:cursor-grabbing select-none overflow-hidden',
+        'absolute left-1 right-1 rounded-md shadow-sm cursor-grab active:cursor-grabbing select-none overflow-hidden',
         style.block,
       )}
       style={{
