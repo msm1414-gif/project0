@@ -17,6 +17,9 @@ export interface Event {
   startMinutes: number;
   endMinutes: number;
   recurringGroupId?: string;
+  notes?: string;
+  notionPageUrl?: string;
+  notionPageId?: string;
   createdAt: number;
 }
 

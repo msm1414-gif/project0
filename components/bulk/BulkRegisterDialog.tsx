@@ -10,6 +10,8 @@ import { inferCategory } from '@/lib/categorize';
 import { DAY_MINUTES, formatDate, parseDate, timeOptions, todayStr } from '@/lib/time';
 import { holidayName, isJapaneseHoliday } from '@/lib/holidays';
 import { useApp } from '@/lib/store';
+import { isNotionConfigured, loadSettings } from '@/lib/settings';
+import { createNotionPage, ensureSubjectPage, heading2, paragraph } from '@/lib/notion-client';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -28,6 +30,7 @@ interface Props {
 
 export default function BulkRegisterDialog({ open, onClose }: Props) {
   const addEvents = useApp((s) => s.addEvents);
+  const updateEvent = useApp((s) => s.updateEvent);
   const today = todayStr();
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
@@ -37,6 +40,8 @@ export default function BulkRegisterDialog({ open, onClose }: Props) {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<Category | 'auto'>('auto');
   const [excludeHolidays, setExcludeHolidays] = useState(true);
+  const [createNotion, setCreateNotion] = useState(true);
+  const [notionProgress, setNotionProgress] = useState<string | null>(null);
 
   const resolvedCategory: Category = category === 'auto' ? inferCategory(title) : category;
 
@@ -70,7 +75,7 @@ export default function BulkRegisterDialog({ open, onClose }: Props) {
     setDays((prev) => prev.map((v, j) => (j === i ? !v : v)));
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (endMin <= startMin) return;
     const sd = parseDate(startDate);
@@ -81,9 +86,10 @@ export default function BulkRegisterDialog({ open, onClose }: Props) {
       .filter((d) => !(excludeHolidays && isJapaneseHoliday(d)));
     if (dates.length === 0) return;
     const groupId = `grp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    addEvents(
+    const resolvedTitle = title.trim() || '(無題)';
+    const created = addEvents(
       dates.map((d) => ({
-        title: title.trim() || '(無題)',
+        title: resolvedTitle,
         category: resolvedCategory,
         date: formatDate(d),
         startMinutes: startMin,
@@ -91,7 +97,39 @@ export default function BulkRegisterDialog({ open, onClose }: Props) {
         recurringGroupId: groupId,
       })),
     );
-    onClose();
+
+    const shouldNotion =
+      createNotion &&
+      resolvedCategory === 'university' &&
+      isNotionConfigured(loadSettings());
+
+    if (!shouldNotion) {
+      onClose();
+      return;
+    }
+
+    try {
+      setNotionProgress('科目ページを確認中...');
+      const subjectPageId = await ensureSubjectPage(resolvedTitle);
+      for (let i = 0; i < created.length; i++) {
+        const ev = created[i];
+        setNotionProgress(`ノート作成中 ${i + 1}/${created.length} (${ev.date})`);
+        const pageTitle = `${ev.date} ${resolvedTitle}`;
+        const page = await createNotionPage(subjectPageId, pageTitle, [
+          heading2('メモ'),
+          paragraph(''),
+          heading2('講義資料'),
+          paragraph(''),
+        ]);
+        updateEvent(ev.id, { notionPageUrl: page.url, notionPageId: page.id });
+      }
+      setNotionProgress(null);
+      onClose();
+    } catch (err) {
+      setNotionProgress(
+        `エラー: ${err instanceof Error ? err.message : String(err)}。予定は作成済みです。`,
+      );
+    }
   }
 
   const times = timeOptions();
@@ -260,6 +298,23 @@ export default function BulkRegisterDialog({ open, onClose }: Props) {
           </div>
         </div>
 
+        {resolvedCategory === 'university' && (
+          <label className="mt-3 flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={createNotion}
+              onChange={(e) => setCreateNotion(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-slate-700"
+            />
+            <span className="text-slate-600 dark:text-slate-300">
+              Notion に講義ノートページも作成する
+              {!isNotionConfigured(loadSettings()) && (
+                <span className="ml-1 text-[11px] text-amber-600">（⚙️ 設定で Notion 連携を済ませてください）</span>
+              )}
+            </span>
+          </label>
+        )}
+
         <div className="mt-4 rounded border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
           {preview.count > 0 ? (
             <>
@@ -282,17 +337,24 @@ export default function BulkRegisterDialog({ open, onClose }: Props) {
           )}
         </div>
 
+        {notionProgress && (
+          <div className="mt-3 rounded border border-sky-200 bg-sky-50 p-2 text-xs text-sky-800 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200">
+            {notionProgress}
+          </div>
+        )}
+
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600"
+            disabled={notionProgress !== null && !notionProgress.startsWith('エラー')}
+            className="rounded border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-40 dark:border-slate-600"
           >
-            キャンセル
+            {notionProgress?.startsWith('エラー') ? '閉じる' : 'キャンセル'}
           </button>
           <button
             type="submit"
-            disabled={preview.count === 0}
+            disabled={preview.count === 0 || notionProgress !== null}
             className="rounded bg-slate-900 px-3 py-1.5 text-sm text-white disabled:opacity-40 dark:bg-white dark:text-slate-900"
           >
             {preview.count} 件を作成

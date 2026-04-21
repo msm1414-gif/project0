@@ -7,6 +7,7 @@ import { addDays } from 'date-fns';
 import TimeboxGrid from '@/components/timebox/TimeboxGrid';
 import TodoSidebar from '@/components/todo/TodoSidebar';
 import BulkRegisterDialog from '@/components/bulk/BulkRegisterDialog';
+import SettingsDialog from '@/components/settings/SettingsDialog';
 import { useApp } from '@/lib/store';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
 
@@ -22,6 +23,7 @@ function HomeInner() {
   const selectedDate = queryDate && DATE_RE.test(queryDate) ? queryDate : todayStr();
 
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     void hydrate();
@@ -92,6 +94,21 @@ function HomeInner() {
         >
           カレンダー
         </Link>
+        <Link
+          href="/subjects"
+          className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+        >
+          科目
+        </Link>
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          className="rounded border border-slate-300 px-2 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          aria-label="設定"
+          title="設定"
+        >
+          ⚙️
+        </button>
       </header>
 
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_280px]">
@@ -109,6 +126,7 @@ function HomeInner() {
       </div>
 
       <BulkRegisterDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </main>
   );
 }

@@ -7,19 +7,31 @@ import { CATEGORIES, CATEGORY_LABELS } from '@/lib/types';
 import { CATEGORY_STYLES } from '@/lib/colors';
 import { inferCategory } from '@/lib/categorize';
 import { DAY_MINUTES, formatMinutes, timeOptions } from '@/lib/time';
+import { isNotionConfigured, loadSettings } from '@/lib/settings';
+import { createNotionPage, ensureSubjectPage, heading2, paragraph } from '@/lib/notion-client';
+import { useApp } from '@/lib/store';
 
 type Draft = {
   title: string;
   category: Category | 'auto';
   startMinutes: number;
   endMinutes: number;
+  notes: string;
 };
+
+export interface EventFormData {
+  title: string;
+  category: Category;
+  startMinutes: number;
+  endMinutes: number;
+  notes?: string;
+}
 
 interface Props {
   open: boolean;
   event?: Event;
   initial?: { startMinutes: number; endMinutes: number };
-  onSave: (data: { title: string; category: Category; startMinutes: number; endMinutes: number }) => void;
+  onSave: (data: EventFormData) => void;
   onDelete?: () => void;
   onDeleteGroup?: () => void;
   onClose: () => void;
@@ -33,6 +45,7 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
         category: event.category,
         startMinutes: event.startMinutes,
         endMinutes: event.endMinutes,
+        notes: event.notes ?? '',
       };
     }
     return {
@@ -40,11 +53,20 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
       category: 'auto',
       startMinutes: initial?.startMinutes ?? 9 * 60,
       endMinutes: initial?.endMinutes ?? 10 * 60,
+      notes: '',
     };
   });
 
+  const updateEvent = useApp((s) => s.updateEvent);
+  const storeEvent = useApp((s) => (event ? s.events.find((e) => e.id === event.id) : undefined));
+  const notionUrl = storeEvent?.notionPageUrl ?? event?.notionPageUrl;
+
+  const [notionBusy, setNotionBusy] = useState(false);
+  const [notionError, setNotionError] = useState<string | null>(null);
+
   const times = timeOptions();
   const resolvedCategory: Category = draft.category === 'auto' ? inferCategory(draft.title) : draft.category;
+  const notionConfigured = isNotionConfigured(loadSettings());
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,8 +76,32 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
       category: resolvedCategory,
       startMinutes: draft.startMinutes,
       endMinutes: Math.min(DAY_MINUTES, draft.endMinutes),
+      notes: draft.notes,
     });
   }
+
+  async function createNotion() {
+    if (!event) return;
+    setNotionError(null);
+    setNotionBusy(true);
+    try {
+      const title = event.title;
+      const subjectPageId = await ensureSubjectPage(title);
+      const page = await createNotionPage(subjectPageId, `${event.date} ${title}`, [
+        heading2('メモ'),
+        paragraph(draft.notes || ''),
+        heading2('講義資料'),
+        paragraph(''),
+      ]);
+      updateEvent(event.id, { notionPageUrl: page.url, notionPageId: page.id });
+    } catch (err) {
+      setNotionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setNotionBusy(false);
+    }
+  }
+
+  const showNotionSection = event && resolvedCategory === 'university';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -140,6 +186,51 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
             ))}
           </div>
         </div>
+
+        <label className="mt-3 block text-sm">
+          <span className="text-slate-600 dark:text-slate-300">メモ</span>
+          <textarea
+            value={draft.notes}
+            onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
+            rows={3}
+            placeholder="簡単なメモ（詳細な講義ノートは Notion 側に）"
+            className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+          />
+        </label>
+
+        {showNotionSection && (
+          <div className="mt-3 rounded border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+            <div className="text-sm font-medium text-slate-700 dark:text-slate-200">Notion 講義ノート</div>
+            {notionUrl ? (
+              <div className="mt-2 flex items-center gap-2">
+                <a
+                  href={notionUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm text-sky-600 underline hover:text-sky-700 dark:text-sky-400"
+                >
+                  📝 Notion ページを開く
+                </a>
+              </div>
+            ) : notionConfigured ? (
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={createNotion}
+                  disabled={notionBusy}
+                  className="rounded border border-slate-300 bg-white px-3 py-1 text-xs hover:bg-slate-100 disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:hover:bg-slate-700"
+                >
+                  {notionBusy ? '作成中...' : '📝 Notion ノートを作成'}
+                </button>
+                {notionError && <div className="mt-2 text-xs text-red-600">{notionError}</div>}
+              </div>
+            ) : (
+              <div className="mt-1 text-xs text-amber-600">
+                ⚙️ 設定で Notion 連携を済ませると、ここから講義ノートを自動作成できます。
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
