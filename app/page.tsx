@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { addDays } from 'date-fns';
 import TimeboxGrid from '@/components/timebox/TimeboxGrid';
 import TodoSidebar from '@/components/todo/TodoSidebar';
@@ -10,14 +10,16 @@ import BulkRegisterDialog from '@/components/bulk/BulkRegisterDialog';
 import { useApp } from '@/lib/store';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 function HomeInner() {
   const hydrate = useApp((s) => s.hydrate);
   const hydrated = useApp((s) => s.hydrated);
-  const selectedDate = useApp((s) => s.selectedDate);
-  const setSelectedDate = useApp((s) => s.setSelectedDate);
 
+  const router = useRouter();
   const searchParams = useSearchParams();
   const queryDate = searchParams.get('date');
+  const selectedDate = queryDate && DATE_RE.test(queryDate) ? queryDate : todayStr();
 
   const [bulkOpen, setBulkOpen] = useState(false);
 
@@ -25,14 +27,16 @@ function HomeInner() {
     void hydrate();
   }, [hydrate]);
 
-  useEffect(() => {
-    if (queryDate && queryDate !== selectedDate) {
-      setSelectedDate(queryDate);
+  function setDate(d: string) {
+    if (d === todayStr()) {
+      router.replace('/');
+    } else {
+      router.replace(`/?date=${d}`);
     }
-  }, [queryDate, selectedDate, setSelectedDate]);
+  }
 
   function shift(dir: -1 | 1) {
-    setSelectedDate(formatDate(addDays(parseDate(selectedDate), dir)));
+    setDate(formatDate(addDays(parseDate(selectedDate), dir)));
   }
 
   const d = parseDate(selectedDate);
@@ -46,7 +50,7 @@ function HomeInner() {
         </h1>
         <button
           type="button"
-          onClick={() => setSelectedDate(todayStr())}
+          onClick={() => setDate(todayStr())}
           className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
         >
           今日
@@ -72,7 +76,7 @@ function HomeInner() {
         <input
           type="date"
           value={selectedDate}
-          onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+          onChange={(e) => e.target.value && setDate(e.target.value)}
           className="rounded border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800"
         />
         <button

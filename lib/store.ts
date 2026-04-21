@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import type { Event, Todo } from './types';
 import * as db from './db';
-import { todayStr } from './time';
 
 function uid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -14,9 +13,7 @@ interface AppState {
   hydrated: boolean;
   events: Event[];
   todos: Todo[];
-  selectedDate: string;
   hydrate: () => Promise<void>;
-  setSelectedDate: (d: string) => void;
   addEvent: (input: Omit<Event, 'id' | 'createdAt'>) => Event;
   addEvents: (list: Omit<Event, 'id' | 'createdAt'>[]) => Event[];
   updateEvent: (id: string, patch: Partial<Omit<Event, 'id' | 'createdAt'>>) => void;
@@ -31,7 +28,6 @@ export const useApp = create<AppState>((set, get) => ({
   hydrated: false,
   events: [],
   todos: [],
-  selectedDate: todayStr(),
   hydrate: async () => {
     if (get().hydrated) return;
     try {
@@ -41,7 +37,6 @@ export const useApp = create<AppState>((set, get) => ({
       set({ hydrated: true });
     }
   },
-  setSelectedDate: (d) => set({ selectedDate: d }),
   addEvent: (input) => {
     const ev: Event = { ...input, id: uid(), createdAt: Date.now() };
     set((s) => ({ events: [...s.events, ev] }));
