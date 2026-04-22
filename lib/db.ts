@@ -83,7 +83,24 @@ export async function saveTodo(t: Todo): Promise<void> {
   await db.put('todos', t);
 }
 
+export async function saveTodos(list: Todo[]): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('todos', 'readwrite');
+  await Promise.all(list.map((t) => tx.store.put(t)));
+  await tx.done;
+}
+
 export async function deleteTodo(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('todos', id);
+}
+
+export async function replaceAll(events: Event[], todos: Todo[]): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction(['events', 'todos'], 'readwrite');
+  await tx.objectStore('events').clear();
+  await tx.objectStore('todos').clear();
+  await Promise.all(events.map((e) => tx.objectStore('events').put(e)));
+  await Promise.all(todos.map((t) => tx.objectStore('todos').put(t)));
+  await tx.done;
 }

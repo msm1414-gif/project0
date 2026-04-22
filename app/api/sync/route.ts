@@ -1,26 +1,52 @@
 import { NextResponse } from 'next/server';
-import type { Event } from '@/lib/types';
-import { putSnapshot } from '@/lib/server-store';
+import type { Event, Todo } from '@/lib/types';
+import { getSnapshot, putSnapshot } from '@/lib/server-store';
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{16,128}$/;
 
 export async function POST(req: Request) {
-  let body: { token?: string; events?: Event[] };
+  let body: { token?: string; events?: Event[]; todos?: Todo[] };
   try {
-    body = (await req.json()) as { token?: string; events?: Event[] };
+    body = (await req.json()) as { token?: string; events?: Event[]; todos?: Todo[] };
   } catch {
     return NextResponse.json({ ok: false, error: 'invalid JSON' }, { status: 400 });
   }
-  const { token, events } = body;
+  const { token, events, todos } = body;
   if (!token || !TOKEN_RE.test(token)) {
     return NextResponse.json({ ok: false, error: 'invalid token' }, { status: 400 });
   }
-  if (!Array.isArray(events)) {
-    return NextResponse.json({ ok: false, error: 'events must be array' }, { status: 400 });
+  if (!Array.isArray(events) || !Array.isArray(todos)) {
+    return NextResponse.json({ ok: false, error: 'events / todos must be arrays' }, { status: 400 });
   }
   try {
-    await putSnapshot(token, events);
-    return NextResponse.json({ ok: true, count: events.length });
+    const snap = await putSnapshot(token, events, todos);
+    return NextResponse.json({ ok: true, updatedAt: snap.updatedAt, count: events.length });
+  } catch (err) {
+    return NextResponse.json(
+      { ok: false, error: err instanceof Error ? err.message : String(err) },
+      { status: 500 },
+    );
+  }
+}
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const token = url.searchParams.get('token');
+  if (!token || !TOKEN_RE.test(token)) {
+    return NextResponse.json({ ok: false, error: 'invalid token' }, { status: 400 });
+  }
+  try {
+    const snap = await getSnapshot(token);
+    if (!snap) {
+      return NextResponse.json({ ok: true, empty: true, events: [], todos: [], updatedAt: 0 });
+    }
+    return NextResponse.json({
+      ok: true,
+      empty: false,
+      events: snap.events,
+      todos: snap.todos,
+      updatedAt: snap.updatedAt,
+    });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : String(err) },

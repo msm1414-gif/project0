@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { generateShareToken, loadSettings, saveSettings } from '@/lib/settings';
 import { testNotion } from '@/lib/notion-client';
-import { icsUrlFor, syncEventsToCloud } from '@/lib/sync-client';
+import { icsUrlFor, shareUrlFor } from '@/lib/sync-client';
 import { useApp } from '@/lib/store';
 
 interface Props {
@@ -23,6 +23,12 @@ type SyncState =
   | { status: 'done'; count: number; at: number }
   | { status: 'error'; message: string };
 
+type PullState =
+  | { status: 'idle' }
+  | { status: 'pulling' }
+  | { status: 'done'; at: number; empty: boolean }
+  | { status: 'error'; message: string };
+
 function Body({ onClose }: { onClose: () => void }) {
   const initial = loadSettings();
   const [token, setToken] = useState(initial.notionToken);
@@ -35,11 +41,17 @@ function Body({ onClose }: { onClose: () => void }) {
   });
   const [test, setTest] = useState<TestState>({ status: 'idle' });
   const [sync, setSync] = useState<SyncState>({ status: 'idle' });
-  const [copied, setCopied] = useState(false);
+  const [pull, setPull] = useState<PullState>({ status: 'idle' });
+  const [copiedIcs, setCopiedIcs] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
 
   const events = useApp((s) => s.events);
+  const pushNow = useApp((s) => s.pushNow);
+  const pullNow = useApp((s) => s.pullNow);
+  const lastSyncedAt = useApp((s) => s.lastSyncedAt);
 
   const icsUrl = shareToken ? icsUrlFor(shareToken) : '';
+  const shareUrl = shareToken ? shareUrlFor(shareToken) : '';
 
   async function onTest() {
     if (!token || !parentPageId) return;
@@ -56,11 +68,22 @@ function Body({ onClose }: { onClose: () => void }) {
   async function onSync() {
     if (!shareToken) return;
     setSync({ status: 'syncing' });
-    try {
-      const count = await syncEventsToCloud(shareToken, events);
-      setSync({ status: 'done', count, at: Date.now() });
-    } catch (err) {
-      setSync({ status: 'error', message: err instanceof Error ? err.message : String(err) });
+    const res = await pushNow();
+    if (res.ok) {
+      setSync({ status: 'done', count: events.length, at: Date.now() });
+    } else {
+      setSync({ status: 'error', message: res.error ?? '同期に失敗しました' });
+    }
+  }
+
+  async function onPull() {
+    if (!shareToken) return;
+    setPull({ status: 'pulling' });
+    const res = await pullNow();
+    if (res.ok) {
+      setPull({ status: 'done', at: Date.now(), empty: !!res.empty });
+    } else {
+      setPull({ status: 'error', message: res.error ?? '取得に失敗しました' });
     }
   }
 
@@ -71,14 +94,21 @@ function Body({ onClose }: { onClose: () => void }) {
     setShareToken(t);
     saveSettings({ shareToken: t });
     setSync({ status: 'idle' });
+    setPull({ status: 'idle' });
   }
 
-  async function onCopy() {
-    if (!icsUrl) return;
+  async function onCopy(target: 'ics' | 'share') {
+    const text = target === 'ics' ? icsUrl : shareUrl;
+    if (!text) return;
     try {
-      await navigator.clipboard.writeText(icsUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      await navigator.clipboard.writeText(text);
+      if (target === 'ics') {
+        setCopiedIcs(true);
+        setTimeout(() => setCopiedIcs(false), 1500);
+      } else {
+        setCopiedShare(true);
+        setTimeout(() => setCopiedShare(false), 1500);
+      }
     } catch {
       /* ignore */
     }
@@ -102,81 +132,107 @@ function Body({ onClose }: { onClose: () => void }) {
         <h2 className="text-lg font-semibold">設定</h2>
 
         <section className="mt-4">
-          <h3 className="text-sm font-semibold">📲 スマホで見る (ICS 購読)</h3>
+          <h3 className="text-sm font-semibold">📱 スマホと双方向同期</h3>
           <p className="mt-1 text-xs text-slate-500">
-            クラウドに予定を同期し、スマホのカレンダーアプリ (Google / Apple) で購読できるようにします。読み取り専用です。
+            下の「スマホ用 URL」をスマホのブラウザで開くと、同じデータに接続して編集もできます。PC・スマホの両方で編集した内容は自動的にクラウド経由で同期されます（1〜2 秒のディレイあり）。
           </p>
 
           <div className="mt-3">
-            <div className="text-sm text-slate-600 dark:text-slate-300">ICS 購読 URL</div>
+            <div className="text-sm text-slate-600 dark:text-slate-300">スマホ用 URL</div>
             <div className="mt-1 flex gap-2">
               <input
                 readOnly
-                value={icsUrl}
+                value={shareUrl}
                 className="flex-1 rounded border border-slate-300 bg-slate-50 px-2 py-1.5 font-mono text-xs dark:border-slate-700 dark:bg-slate-800"
+                onFocus={(e) => e.currentTarget.select()}
               />
               <button
                 type="button"
-                onClick={onCopy}
-                disabled={!icsUrl}
+                onClick={() => onCopy('share')}
+                disabled={!shareUrl}
                 className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:hover:bg-slate-800"
               >
-                {copied ? '✓ コピー' : 'コピー'}
+                {copiedShare ? '✓ コピー' : 'コピー'}
               </button>
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onRegenerateToken}
-                className="text-[11px] text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-              >
-                トークンを再生成
-              </button>
-              <span className="text-[11px] text-slate-400">
-                ※ この URL を知っている人は予定を閲覧できます
-              </span>
+            <div className="mt-1 text-[11px] text-slate-500">
+              スマホのブラウザで開くと自動的に設定 → クラウド側のデータを取得します
             </div>
           </div>
 
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={onSync}
               disabled={!shareToken || sync.status === 'syncing'}
               className="rounded bg-slate-900 px-3 py-1.5 text-sm text-white disabled:opacity-40 dark:bg-white dark:text-slate-900"
             >
-              {sync.status === 'syncing' ? '同期中...' : `今すぐ同期 (${events.length} 件)`}
+              {sync.status === 'syncing' ? '同期中...' : `↑ 手動でpush (${events.length} 件)`}
             </button>
-            {sync.status === 'done' && (
-              <span className="text-xs text-emerald-600 dark:text-emerald-400">
-                ✓ {sync.count} 件を同期しました
+            <button
+              type="button"
+              onClick={onPull}
+              disabled={!shareToken || pull.status === 'pulling'}
+              className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:hover:bg-slate-800"
+            >
+              {pull.status === 'pulling' ? '取得中...' : '↓ クラウドから再取得'}
+            </button>
+            {lastSyncedAt && (
+              <span className="text-[11px] text-slate-500">
+                最終取得: {new Date(lastSyncedAt).toLocaleString('ja-JP')}
               </span>
-            )}
-            {sync.status === 'error' && (
-              <span className="text-xs text-red-600 dark:text-red-400">✗ {sync.message}</span>
             )}
           </div>
 
-          <details className="mt-3 rounded border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-            <summary className="cursor-pointer font-medium">スマホで購読する手順</summary>
-            <div className="mt-2 space-y-2">
-              <p>
-                <strong>Google カレンダー (推奨):</strong> PC ブラウザで{' '}
-                <a
-                  href="https://calendar.google.com/calendar/r/settings/addbyurl"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sky-600 underline"
-                >
-                  Google カレンダー設定 → 「URL で追加」
-                </a>{' '}
-                に上の ICS URL を貼る。スマホの Google カレンダーアプリに自動で反映されます（数時間かかることあり）。
-              </p>
-              <p>
-                <strong>Apple カレンダー (iPhone):</strong> 設定 → カレンダー → アカウント → アカウントを追加 → その他 → 照会するカレンダーを追加 → URL を貼る
-              </p>
+          {sync.status === 'done' && (
+            <div className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+              ✓ クラウドに push しました
             </div>
-          </details>
+          )}
+          {sync.status === 'error' && (
+            <div className="mt-2 text-xs text-red-600 dark:text-red-400">✗ push 失敗: {sync.message}</div>
+          )}
+          {pull.status === 'done' && (
+            <div className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+              ✓ クラウドから取得しました{pull.empty && '（クラウドは空でした）'}
+            </div>
+          )}
+          {pull.status === 'error' && (
+            <div className="mt-2 text-xs text-red-600 dark:text-red-400">✗ 取得失敗: {pull.message}</div>
+          )}
+
+          <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-700">
+            <div className="text-sm text-slate-600 dark:text-slate-300">ICS 購読 URL（読み取り専用・Google/Apple カレンダー用）</div>
+            <div className="mt-1 flex gap-2">
+              <input
+                readOnly
+                value={icsUrl}
+                className="flex-1 rounded border border-slate-300 bg-slate-50 px-2 py-1.5 font-mono text-xs dark:border-slate-700 dark:bg-slate-800"
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <button
+                type="button"
+                onClick={() => onCopy('ics')}
+                disabled={!icsUrl}
+                className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:hover:bg-slate-800"
+              >
+                {copiedIcs ? '✓ コピー' : 'コピー'}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onRegenerateToken}
+              className="text-[11px] text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            >
+              トークンを再生成
+            </button>
+            <span className="text-[11px] text-slate-400">
+              ※ URL を知っている人は予定の閲覧・編集が可能です
+            </span>
+          </div>
         </section>
 
         <section className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-700">

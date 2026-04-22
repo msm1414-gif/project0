@@ -1,12 +1,12 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import type { Event } from './types';
+import type { Event, Todo } from './types';
 
 const useKV = !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN;
 
 const localFile = () => path.join(process.cwd(), '.data', 'sync.json');
 
-type Snapshot = { updatedAt: number; events: Event[] };
+export type Snapshot = { updatedAt: number; events: Event[]; todos: Todo[] };
 
 async function readLocal(): Promise<Record<string, Snapshot>> {
   try {
@@ -28,20 +28,27 @@ async function writeLocal(data: Record<string, Snapshot>): Promise<void> {
 export async function getSnapshot(token: string): Promise<Snapshot | null> {
   if (useKV) {
     const { kv } = await import('@vercel/kv');
-    return ((await kv.get<Snapshot>(`snap:${token}`)) ?? null) as Snapshot | null;
+    const got = (await kv.get<Snapshot>(`snap:${token}`)) ?? null;
+    if (!got) return null;
+    return { updatedAt: got.updatedAt, events: got.events ?? [], todos: got.todos ?? [] };
   }
   const data = await readLocal();
   return data[token] ?? null;
 }
 
-export async function putSnapshot(token: string, events: Event[]): Promise<void> {
-  const snap: Snapshot = { updatedAt: Date.now(), events };
+export async function putSnapshot(
+  token: string,
+  events: Event[],
+  todos: Todo[],
+): Promise<Snapshot> {
+  const snap: Snapshot = { updatedAt: Date.now(), events, todos };
   if (useKV) {
     const { kv } = await import('@vercel/kv');
     await kv.set(`snap:${token}`, snap);
-    return;
+    return snap;
   }
   const data = await readLocal();
   data[token] = snap;
   await writeLocal(data);
+  return snap;
 }

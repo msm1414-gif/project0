@@ -9,21 +9,36 @@ import TodoSidebar from '@/components/todo/TodoSidebar';
 import BulkRegisterDialog from '@/components/bulk/BulkRegisterDialog';
 import SettingsDialog from '@/components/settings/SettingsDialog';
 import { useApp } from '@/lib/store';
+import { loadSettings, saveSettings } from '@/lib/settings';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TOKEN_RE = /^[A-Za-z0-9_-]{16,128}$/;
 
 function HomeInner() {
   const hydrate = useApp((s) => s.hydrate);
   const hydrated = useApp((s) => s.hydrated);
+  const pullNow = useApp((s) => s.pullNow);
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryDate = searchParams.get('date');
+  const tokenFromUrl = searchParams.get('t');
   const selectedDate = queryDate && DATE_RE.test(queryDate) ? queryDate : todayStr();
 
   const [bulkOpen, setBulkOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!tokenFromUrl || !TOKEN_RE.test(tokenFromUrl)) return;
+    if (loadSettings().shareToken === tokenFromUrl) {
+      router.replace(queryDate ? `/?date=${queryDate}` : '/');
+      return;
+    }
+    saveSettings({ shareToken: tokenFromUrl });
+    router.replace(queryDate ? `/?date=${queryDate}` : '/');
+    void pullNow();
+  }, [tokenFromUrl, queryDate, router, pullNow]);
 
   useEffect(() => {
     void hydrate();
