@@ -6,12 +6,14 @@ export interface Settings {
   notionToken: string;
   notionParentPageId: string;
   subjectPageIds: Record<string, string>;
+  shareToken: string;
 }
 
 const DEFAULTS: Settings = {
   notionToken: '',
   notionParentPageId: '',
   subjectPageIds: {},
+  shareToken: '',
 };
 
 function normalizePageId(raw: string): string {
@@ -60,4 +62,22 @@ export function rememberSubjectPage(title: string, pageId: string) {
 export function isNotionConfigured(s?: Settings): boolean {
   const cur = s ?? loadSettings();
   return !!(cur.notionToken && cur.notionParentPageId);
+}
+
+export function generateShareToken(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '').slice(0, 8);
+  }
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let s = '';
+  for (let i = 0; i < 40; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+export function ensureShareToken(): string {
+  const s = loadSettings();
+  if (s.shareToken) return s.shareToken;
+  const token = generateShareToken();
+  saveSettings({ shareToken: token });
+  return token;
 }
