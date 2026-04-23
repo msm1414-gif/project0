@@ -33,7 +33,7 @@ export default function TimeboxGrid({ date }: Props) {
 
   const gridRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
-  const selectingRef = useRef<{ anchor: number; pointerId: number } | null>(null);
+  const selectingRef = useRef<{ anchor: number; pointerId: number; moved: boolean } | null>(null);
   const longPressRef = useRef<{
     timer: ReturnType<typeof setTimeout>;
     startX: number;
@@ -61,7 +61,7 @@ export default function TimeboxGrid({ date }: Props) {
 
   function beginSelection(clientY: number, pointerId: number, target: HTMLElement) {
     const anchor = snap(yToMinutes(clientY));
-    selectingRef.current = { anchor, pointerId };
+    selectingRef.current = { anchor, pointerId, moved: false };
     try {
       target.setPointerCapture(pointerId);
     } catch {}
@@ -119,6 +119,7 @@ export default function TimeboxGrid({ date }: Props) {
     const s = selectingRef.current;
     if (!s) return;
     const cur = snap(yToMinutes(e.clientY));
+    if (cur !== s.anchor) s.moved = true;
     const start = Math.max(0, Math.min(s.anchor, cur));
     const end = Math.min(DAY_MINUTES, Math.max(s.anchor, cur));
     setSelection({
@@ -127,7 +128,7 @@ export default function TimeboxGrid({ date }: Props) {
     });
   }
 
-  function onGridPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+  function finishSelection(e: React.PointerEvent<HTMLDivElement>, commit: boolean) {
     cancelLongPress();
     const s = selectingRef.current;
     selectingRef.current = null;
@@ -135,11 +136,19 @@ export default function TimeboxGrid({ date }: Props) {
     try {
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
     } catch {}
-    if (!selection) return;
     const sel = selection;
     setSelection(null);
+    if (!commit || !sel || !s.moved) return;
     if (sel.endMinutes - sel.startMinutes < MIN_EVENT_MINUTES) return;
     setDialog({ kind: 'new', initial: sel });
+  }
+
+  function onGridPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    finishSelection(e, true);
+  }
+
+  function onGridPointerCancel(e: React.PointerEvent<HTMLDivElement>) {
+    finishSelection(e, false);
   }
 
   useEffect(() => {
@@ -151,6 +160,14 @@ export default function TimeboxGrid({ date }: Props) {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  useEffect(() => {
+    function preventScroll(e: TouchEvent) {
+      if (selectingRef.current) e.preventDefault();
+    }
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+    return () => document.removeEventListener('touchmove', preventScroll);
   }, []);
 
   const fivePx = minutesToPx(5);
@@ -184,7 +201,7 @@ export default function TimeboxGrid({ date }: Props) {
         onPointerDown={onGridPointerDown}
         onPointerMove={onGridPointerMove}
         onPointerUp={onGridPointerUp}
-        onPointerCancel={onGridPointerUp}
+        onPointerCancel={onGridPointerCancel}
       >
 
         {selection && (
