@@ -34,6 +34,12 @@ export default function TimeboxGrid({ date }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
   const selectingRef = useRef<{ anchor: number; pointerId: number } | null>(null);
+  const longPressRef = useRef<{
+    timer: ReturnType<typeof setTimeout>;
+    startX: number;
+    startY: number;
+    pointerId: number;
+  } | null>(null);
 
   const [dialog, setDialog] = useState<
     | { kind: 'new'; initial: Selection }
@@ -53,16 +59,63 @@ export default function TimeboxGrid({ date }: Props) {
     return pxToMinutes(clientY - rect.top);
   }
 
-  function onGridPointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    if (e.button !== 0) return;
-    if ((e.target as HTMLElement).closest('[data-event-block]')) return;
-    const anchor = snap(yToMinutes(e.clientY));
-    selectingRef.current = { anchor, pointerId: e.pointerId };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  function beginSelection(clientY: number, pointerId: number, target: HTMLElement) {
+    const anchor = snap(yToMinutes(clientY));
+    selectingRef.current = { anchor, pointerId };
+    try {
+      target.setPointerCapture(pointerId);
+    } catch {}
     setSelection({ startMinutes: anchor, endMinutes: anchor + MIN_EVENT_MINUTES });
   }
 
+  function cancelLongPress() {
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current.timer);
+      longPressRef.current = null;
+    }
+  }
+
+  function onGridPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if ((e.target as HTMLElement).closest('[data-event-block]')) return;
+
+    if (e.pointerType === 'touch') {
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const pointerId = e.pointerId;
+      const target = e.currentTarget;
+      cancelLongPress();
+      longPressRef.current = {
+        startX,
+        startY,
+        pointerId,
+        timer: setTimeout(() => {
+          longPressRef.current = null;
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            try {
+              navigator.vibrate?.(30);
+            } catch {}
+          }
+          beginSelection(startY, pointerId, target);
+        }, 350),
+      };
+      return;
+    }
+
+    beginSelection(e.clientY, e.pointerId, e.currentTarget);
+  }
+
   function onGridPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const lp = longPressRef.current;
+    if (lp) {
+      if (
+        Math.abs(e.clientX - lp.startX) > 10 ||
+        Math.abs(e.clientY - lp.startY) > 10
+      ) {
+        cancelLongPress();
+      }
+      return;
+    }
     const s = selectingRef.current;
     if (!s) return;
     const cur = snap(yToMinutes(e.clientY));
@@ -75,6 +128,7 @@ export default function TimeboxGrid({ date }: Props) {
   }
 
   function onGridPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    cancelLongPress();
     const s = selectingRef.current;
     selectingRef.current = null;
     if (!s) return;
@@ -118,7 +172,7 @@ export default function TimeboxGrid({ date }: Props) {
       </div>
       <div
         ref={gridRef}
-        className="relative flex-1 border-l border-slate-300 dark:border-slate-600"
+        className="relative flex-1 select-none touch-pan-y border-l border-slate-300 dark:border-slate-600"
         style={{
           height: GRID_HEIGHT,
           backgroundImage: [

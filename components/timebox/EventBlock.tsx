@@ -103,7 +103,7 @@ export default function EventBlock({ event, onChange, onClick }: Props) {
     <div
       ref={ref}
       className={clsx(
-        'absolute left-1 right-1 rounded-md shadow-sm cursor-grab active:cursor-grabbing select-none overflow-hidden',
+        'absolute left-1 right-1 rounded-md shadow-sm cursor-grab active:cursor-grabbing select-none overflow-hidden touch-none',
         style.block,
       )}
       style={{
@@ -116,7 +116,7 @@ export default function EventBlock({ event, onChange, onClick }: Props) {
       onPointerCancel={endDrag}
     >
       <div
-        className="absolute inset-x-0 top-0 h-1.5 cursor-ns-resize"
+        className="absolute inset-x-0 top-0 h-2 cursor-ns-resize touch-none"
         onPointerDown={(e) => beginDrag('resize-top', e)}
       />
       <div className={clsx('px-2 py-1 text-xs leading-tight', compact && 'py-0.5')}>
@@ -128,7 +128,7 @@ export default function EventBlock({ event, onChange, onClick }: Props) {
         )}
       </div>
       <div
-        className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize"
+        className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none"
         onPointerDown={(e) => beginDrag('resize-bottom', e)}
       />
     </div>
