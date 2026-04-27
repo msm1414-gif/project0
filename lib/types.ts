@@ -17,10 +17,29 @@ export interface Event {
   startMinutes: number;
   endMinutes: number;
   recurringGroupId?: string;
+  timetableId?: string;
   notes?: string;
   notionPageUrl?: string;
   notionPageId?: string;
   createdAt: number;
+}
+
+export interface TimetableCell {
+  day: number;
+  period: number;
+  subject: string;
+}
+
+export interface Timetable {
+  id: string;
+  semesterKey: 'spring' | 'fall';
+  year: number;
+  excludeHolidays: boolean;
+  includeSat: boolean;
+  createNotion: boolean;
+  cells: TimetableCell[];
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface Todo {

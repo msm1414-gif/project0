@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import clsx from 'clsx';
-import { eachDayOfInterval } from 'date-fns';
 import { useApp } from '@/lib/store';
 import { CATEGORY_STYLES } from '@/lib/colors';
-import { isJapaneseHoliday } from '@/lib/holidays';
 import { isNotionConfigured, loadSettings } from '@/lib/settings';
 import { createNotionPage, ensureSubjectPage, heading2, paragraph } from '@/lib/notion-client';
 import {
@@ -15,7 +13,8 @@ import {
   springSemester,
   type Semester,
 } from '@/lib/semesters';
-import { formatDate, formatMinutes, parseDate } from '@/lib/time';
+import type { Timetable, TimetableCell } from '@/lib/types';
+import { formatMinutes } from '@/lib/time';
 
 const DAYS = [1, 2, 3, 4, 5, 6];
 const DAY_LABELS = ['月', '火', '水', '木', '金', '土'];
@@ -26,7 +25,12 @@ interface Props {
   onClose: () => void;
 }
 
-type Stage = 'input' | 'creating' | 'done';
+type Stage = 'input' | 'applying' | 'done';
+
+function newId() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+  return `tt-${Date.now().toString(36)}`;
+}
 
 export default function TimetableGridDialog({ open, onClose }: Props) {
   if (!open) return null;
@@ -34,102 +38,108 @@ export default function TimetableGridDialog({ open, onClose }: Props) {
 }
 
 function Body({ onClose }: { onClose: () => void }) {
-  const addEvents = useApp((s) => s.addEvents);
+  const timetables = useApp((s) => s.timetables);
+  const saveTimetable = useApp((s) => s.saveTimetable);
+  const removeTimetable = useApp((s) => s.removeTimetable);
+  const removeTimetableEvents = useApp((s) => s.removeTimetableEvents);
+  const applyTimetable = useApp((s) => s.applyTimetable);
   const updateEvent = useApp((s) => s.updateEvent);
 
   const defaultYears = defaultSemesterYear();
   const [semesterKey, setSemesterKey] = useState<'spring' | 'fall'>('spring');
   const [year, setYear] = useState<number>(defaultYears.spring);
-  const [excludeHolidays, setExcludeHolidays] = useState(true);
-  const [createNotion, setCreateNotion] = useState(true);
-  const [includeSat, setIncludeSat] = useState(false);
-  const [grid, setGrid] = useState<Record<string, string>>({});
+
+  // Find existing timetable for this semester+year
+  const existing = useMemo(
+    () =>
+      timetables.find((t) => t.semesterKey === semesterKey && t.year === year) ?? null,
+    [timetables, semesterKey, year],
+  );
+
+  const [excludeHolidays, setExcludeHolidays] = useState(existing?.excludeHolidays ?? true);
+  const [includeSat, setIncludeSat] = useState(existing?.includeSat ?? false);
+  const [createNotion, setCreateNotion] = useState(existing?.createNotion ?? true);
+  const [grid, setGrid] = useState<Record<string, string>>(() => cellsToGrid(existing?.cells ?? []));
+  // Track which (semester, year) the local state is synced from, to detect when user switches selectors
+  const [syncedFor, setSyncedFor] = useState<string>(`${semesterKey}-${year}`);
 
   const [stage, setStage] = useState<Stage>('input');
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const semester: Semester = semesterKey === 'spring' ? springSemester(year) : fallSemester(year);
+  const semester: Semester =
+    semesterKey === 'spring' ? springSemester(year) : fallSemester(year);
   const notionConfigured = isNotionConfigured(loadSettings());
   const visibleDays = DAYS.filter((d) => includeSat || d !== 6);
+
+  // Auto-load saved timetable when semester or year changes
+  const currentKey = `${semesterKey}-${year}`;
+  if (currentKey !== syncedFor) {
+    setSyncedFor(currentKey);
+    setGrid(cellsToGrid(existing?.cells ?? []));
+    setExcludeHolidays(existing?.excludeHolidays ?? true);
+    setIncludeSat(existing?.includeSat ?? false);
+    setCreateNotion(existing?.createNotion ?? true);
+  }
 
   const cellKey = (d: number, p: number) => `${d}-${p}`;
   function setCell(d: number, p: number, v: string) {
     setGrid((prev) => ({ ...prev, [cellKey(d, p)]: v }));
   }
   function clearAll() {
-    if (confirm('すべての入力をクリアしますか？')) setGrid({});
+    if (confirm('すべてのセルをクリアしますか？（保存はされません）')) setGrid({});
   }
 
-  const filledCount = Object.values(grid).filter((v) => v.trim()).length;
+  const filledCells = Object.entries(grid)
+    .filter(([, v]) => v.trim())
+    .map(([k, v]) => {
+      const [d, p] = k.split('-').map(Number);
+      return { day: d, period: p, subject: v.trim() } as TimetableCell;
+    });
+  const filledCount = filledCells.length;
 
-  async function onCreate() {
-    setStage('creating');
+  async function onSaveAndApply() {
+    setStage('applying');
     setError(null);
     try {
-      const classes: { subject: string; day: number; period: number }[] = [];
-      for (const [k, v] of Object.entries(grid)) {
-        if (!v.trim()) continue;
-        const [d, p] = k.split('-').map(Number);
-        classes.push({ subject: v.trim(), day: d, period: p });
-      }
-      if (classes.length === 0) {
-        setError('科目が入力されていません');
-        setStage('input');
-        return;
-      }
-      const grouped = new Map<string, typeof classes>();
-      for (const c of classes) {
-        const list = grouped.get(c.subject) ?? [];
-        list.push(c);
-        grouped.set(c.subject, list);
-      }
-      let totalCreated = 0;
-      const created: { subject: string; eventIds: string[] }[] = [];
-      let i = 0;
-      for (const [subject, list] of grouped) {
-        i++;
-        setProgress(`予定作成中 ${i}/${grouped.size}: ${subject}`);
-        const groupId =
-          typeof crypto !== 'undefined' && 'randomUUID' in crypto
-            ? `tt-${crypto.randomUUID()}`
-            : `tt-${i}-${subject}`;
-        const inputs: Parameters<typeof addEvents>[0] = [];
-        for (const c of list) {
-          const period = PERIOD_TIMES.find((p) => p.period === c.period)!;
-          for (const range of semester.ranges) {
-            const days = eachDayOfInterval({
-              start: parseDate(range.start),
-              end: parseDate(range.end),
-            });
-            for (const d of days) {
-              if (d.getDay() !== c.day) continue;
-              if (excludeHolidays && isJapaneseHoliday(d)) continue;
-              inputs.push({
-                title: subject,
-                category: 'university',
-                date: formatDate(d),
-                startMinutes: period.start,
-                endMinutes: period.end,
-                recurringGroupId: groupId,
-              });
-            }
-          }
-        }
-        const events = addEvents(inputs);
-        totalCreated += events.length;
-        created.push({ subject, eventIds: events.map((e) => e.id) });
-      }
+      const id = existing?.id ?? newId();
+      const timetable: Timetable = {
+        id,
+        semesterKey,
+        year,
+        excludeHolidays,
+        includeSat,
+        createNotion,
+        cells: filledCells,
+        createdAt: existing?.createdAt ?? Date.now(),
+        updatedAt: Date.now(),
+      };
+      saveTimetable(timetable);
+
+      setProgress('既存予定を整理して再生成中...');
+      const result = applyTimetable(timetable);
+
+      let notionMessages = '';
       if (createNotion && notionConfigured) {
-        for (let k = 0; k < created.length; k++) {
-          const { subject, eventIds } = created[k];
-          setProgress(`Notion 科目ページ確認 ${k + 1}/${created.length}: ${subject}`);
+        const grouped = new Map<string, string[]>();
+        for (const ev of useApp.getState().events.filter((e) => e.timetableId === id)) {
+          if (ev.notionPageUrl) continue;
+          const list = grouped.get(ev.title) ?? [];
+          list.push(ev.id);
+          grouped.set(ev.title, list);
+        }
+        let i = 0;
+        const total = Array.from(grouped.values()).reduce((acc, arr) => acc + arr.length, 0);
+        let done = 0;
+        for (const [subject, eventIds] of grouped) {
+          i++;
           try {
+            setProgress(`Notion 科目ページ確認 ${i}/${grouped.size}: ${subject}`);
             const subjectPageId = await ensureSubjectPage(subject);
             for (let j = 0; j < eventIds.length; j++) {
-              const eventId = eventIds[j];
-              setProgress(`Notion ノート作成 ${subject} ${j + 1}/${eventIds.length}`);
-              const ev = useApp.getState().events.find((e) => e.id === eventId);
+              done++;
+              setProgress(`Notion ノート作成 ${done}/${total}: ${subject}`);
+              const ev = useApp.getState().events.find((e) => e.id === eventIds[j]);
               if (!ev) continue;
               const page = await createNotionPage(subjectPageId, `${ev.date} ${subject}`, [
                 heading2('メモ'),
@@ -137,21 +147,40 @@ function Body({ onClose }: { onClose: () => void }) {
                 heading2('講義資料'),
                 paragraph(''),
               ]);
-              updateEvent(eventId, { notionPageUrl: page.url, notionPageId: page.id });
+              updateEvent(ev.id, { notionPageUrl: page.url, notionPageId: page.id });
             }
           } catch (err) {
-            setError(
-              `Notion 作成中にエラー (${subject}): ${err instanceof Error ? err.message : String(err)}。予定は作成済みです。`,
-            );
+            notionMessages += `\n${subject}: ${err instanceof Error ? err.message : String(err)}`;
           }
         }
       }
-      setProgress(`${totalCreated} 件の予定を作成しました`);
+
+      const lines: string[] = [];
+      if (result.removed > 0) lines.push(`古い予定 ${result.removed} 件を削除`);
+      lines.push(`新しい予定 ${result.created} 件を作成`);
+      if (result.preservedNotion > 0) lines.push(`Notion ページ ${result.preservedNotion} 件を引き継ぎ`);
+      setProgress(lines.join(' / '));
+      if (notionMessages) setError(`Notion 作成エラー:${notionMessages}`);
       setStage('done');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setStage('input');
     }
+  }
+
+  function onDeleteTimetable() {
+    if (!existing) return;
+    if (
+      !confirm(
+        `この時間割と関連する予定 (${useApp.getState().events.filter((e) => e.timetableId === existing.id).length} 件) をすべて削除します。よろしいですか？`,
+      )
+    )
+      return;
+    const removed = removeTimetableEvents(existing.id);
+    removeTimetable(existing.id);
+    setGrid({});
+    setProgress(`時間割を削除しました（予定 ${removed} 件削除）`);
+    setStage('done');
   }
 
   return (
@@ -160,9 +189,16 @@ function Body({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
         className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900"
       >
-        <h2 className="text-lg font-semibold">🗓️ 時間割をまとめて登録</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">🗓️ 時間割</h2>
+          {existing && (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200">
+              保存済み（{new Date(existing.updatedAt).toLocaleDateString('ja-JP')} 更新）
+            </span>
+          )}
+        </div>
         <p className="mt-1 text-xs text-slate-500">
-          下のグリッドに科目名を入れて「予定を作成」を押すと、選択した学期内の該当曜日に一括登録されます。空白セルはスキップされます。
+          科目を入れて「保存して反映」を押すと、学期内の予定が自動で組まれます。後から開いて編集すれば、関連予定が再生成されます。
         </p>
 
         {stage === 'input' && (
@@ -275,18 +311,11 @@ function Body({ onClose }: { onClose: () => void }) {
                       <tr key={p} className="border-t border-slate-100 dark:border-slate-700">
                         <td className="border-r border-slate-200 bg-slate-50 px-2 py-2 text-center align-top dark:border-slate-700 dark:bg-slate-800">
                           <div className="text-sm font-semibold">{p}限</div>
-                          <div className="text-[10px] text-slate-400">
-                            {formatMinutes(period.start)}
-                          </div>
-                          <div className="text-[10px] text-slate-400">
-                            {formatMinutes(period.end)}
-                          </div>
+                          <div className="text-[10px] text-slate-400">{formatMinutes(period.start)}</div>
+                          <div className="text-[10px] text-slate-400">{formatMinutes(period.end)}</div>
                         </td>
                         {visibleDays.map((d) => (
-                          <td
-                            key={d}
-                            className="border-r border-slate-200 p-1 align-top last:border-r-0 dark:border-slate-700"
-                          >
+                          <td key={d} className="border-r border-slate-200 p-1 align-top last:border-r-0 dark:border-slate-700">
                             <input
                               type="text"
                               value={grid[cellKey(d, p)] ?? ''}
@@ -306,7 +335,7 @@ function Body({ onClose }: { onClose: () => void }) {
             <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
               <span className="flex items-center gap-1">
                 <span className={`inline-block h-2 w-2 rounded-full ${CATEGORY_STYLES.university.swatch}`} />
-                {filledCount} 科目入力中（すべて「大学」カテゴリで作成）
+                {filledCount} 科目入力中（すべて「大学」カテゴリ）
               </span>
               {filledCount > 0 && (
                 <button
@@ -321,27 +350,36 @@ function Body({ onClose }: { onClose: () => void }) {
 
             {error && <div className="mt-2 text-xs text-red-600">{error}</div>}
 
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+              {existing && (
+                <button
+                  type="button"
+                  onClick={onDeleteTimetable}
+                  className="mr-auto rounded border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                >
+                  この時間割と関連予定を削除
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onClose}
                 className="rounded border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600"
               >
-                キャンセル
+                閉じる
               </button>
               <button
                 type="button"
-                onClick={onCreate}
+                onClick={onSaveAndApply}
                 disabled={filledCount === 0}
                 className="rounded bg-slate-900 px-3 py-1.5 text-sm text-white disabled:opacity-40 dark:bg-white dark:text-slate-900"
               >
-                {filledCount} 科目で予定を作成
+                {existing ? '保存して反映' : `${filledCount} 科目で保存・予定を作成`}
               </button>
             </div>
           </>
         )}
 
-        {stage === 'creating' && (
+        {stage === 'applying' && (
           <div className="mt-6 rounded border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200">
             {progress ?? '処理中...'}
           </div>
@@ -353,7 +391,7 @@ function Body({ onClose }: { onClose: () => void }) {
               ✓ {progress}
             </div>
             {error && (
-              <div className="mt-2 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              <div className="mt-2 whitespace-pre-wrap rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
                 ⚠️ {error}
               </div>
             )}
@@ -371,4 +409,10 @@ function Body({ onClose }: { onClose: () => void }) {
       </div>
     </div>
   );
+}
+
+function cellsToGrid(cells: TimetableCell[]): Record<string, string> {
+  const g: Record<string, string> = {};
+  for (const c of cells) g[`${c.day}-${c.period}`] = c.subject;
+  return g;
 }

@@ -1,20 +1,24 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { Event, Todo } from './types';
+import type { Event, Timetable, Todo } from './types';
 
 interface AppDB extends DBSchema {
   events: {
     key: string;
     value: Event;
-    indexes: { 'by-date': string; 'by-group': string };
+    indexes: { 'by-date': string; 'by-group': string; 'by-timetable': string };
   };
   todos: {
     key: string;
     value: Todo;
   };
+  timetables: {
+    key: string;
+    value: Timetable;
+  };
 }
 
 const DB_NAME = 'timebox-app';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<AppDB>> | null = null;
 
@@ -24,14 +28,23 @@ function getDB(): Promise<IDBPDatabase<AppDB>> {
   }
   if (!dbPromise) {
     dbPromise = openDB<AppDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
         if (!db.objectStoreNames.contains('events')) {
           const store = db.createObjectStore('events', { keyPath: 'id' });
           store.createIndex('by-date', 'date');
           store.createIndex('by-group', 'recurringGroupId');
+          store.createIndex('by-timetable', 'timetableId');
+        } else if (oldVersion < 2) {
+          const store = db.transaction('events', 'versionchange').objectStore('events');
+          if (!store.indexNames.contains('by-timetable')) {
+            store.createIndex('by-timetable', 'timetableId');
+          }
         }
         if (!db.objectStoreNames.contains('todos')) {
           db.createObjectStore('todos', { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains('timetables')) {
+          db.createObjectStore('timetables', { keyPath: 'id' });
         }
       },
     });
@@ -95,12 +108,33 @@ export async function deleteTodo(id: string): Promise<void> {
   await db.delete('todos', id);
 }
 
-export async function replaceAll(events: Event[], todos: Todo[]): Promise<void> {
+export async function replaceAll(
+  events: Event[],
+  todos: Todo[],
+  timetables: Timetable[],
+): Promise<void> {
   const db = await getDB();
-  const tx = db.transaction(['events', 'todos'], 'readwrite');
+  const tx = db.transaction(['events', 'todos', 'timetables'], 'readwrite');
   await tx.objectStore('events').clear();
   await tx.objectStore('todos').clear();
+  await tx.objectStore('timetables').clear();
   await Promise.all(events.map((e) => tx.objectStore('events').put(e)));
   await Promise.all(todos.map((t) => tx.objectStore('todos').put(t)));
+  await Promise.all(timetables.map((t) => tx.objectStore('timetables').put(t)));
   await tx.done;
+}
+
+export async function loadAllTimetables(): Promise<Timetable[]> {
+  const db = await getDB();
+  return db.getAll('timetables');
+}
+
+export async function saveTimetable(t: Timetable): Promise<void> {
+  const db = await getDB();
+  await db.put('timetables', t);
+}
+
+export async function deleteTimetable(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('timetables', id);
 }
