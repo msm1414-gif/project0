@@ -28,14 +28,14 @@ function getDB(): Promise<IDBPDatabase<AppDB>> {
   }
   if (!dbPromise) {
     dbPromise = openDB<AppDB>(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion) {
+      upgrade(db, oldVersion, _newVersion, transaction) {
         if (!db.objectStoreNames.contains('events')) {
           const store = db.createObjectStore('events', { keyPath: 'id' });
           store.createIndex('by-date', 'date');
           store.createIndex('by-group', 'recurringGroupId');
           store.createIndex('by-timetable', 'timetableId');
         } else if (oldVersion < 2) {
-          const store = db.transaction('events', 'versionchange').objectStore('events');
+          const store = transaction.objectStore('events');
           if (!store.indexNames.contains('by-timetable')) {
             store.createIndex('by-timetable', 'timetableId');
           }
