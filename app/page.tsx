@@ -8,7 +8,7 @@ import TimeboxGrid from '@/components/timebox/TimeboxGrid';
 import TodoSidebar from '@/components/todo/TodoSidebar';
 import BulkRegisterDialog from '@/components/bulk/BulkRegisterDialog';
 import SettingsDialog from '@/components/settings/SettingsDialog';
-import TimetableImportDialog from '@/components/timetable/TimetableImportDialog';
+import TimetableGridDialog from '@/components/timetable/TimetableGridDialog';
 import { useApp } from '@/lib/store';
 import { loadSettings, saveSettings } from '@/lib/settings';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
@@ -109,9 +109,9 @@ function HomeInner() {
           type="button"
           onClick={() => setImportOpen(true)}
           className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
-          title="UTOL のスクショから時間割を取り込む"
+          title="グリッドから時間割を一括登録"
         >
-          📷 取り込み
+          🗓️ 時間割
         </button>
         <Link
           href="/calendar"
@@ -152,7 +152,7 @@ function HomeInner() {
 
       <BulkRegisterDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      <TimetableImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
+      <TimetableGridDialog open={importOpen} onClose={() => setImportOpen(false)} />
     </main>
   );
 }
