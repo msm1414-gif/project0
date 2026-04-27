@@ -7,6 +7,7 @@ export interface Settings {
   notionParentPageId: string;
   subjectPageIds: Record<string, string>;
   shareToken: string;
+  anthropicApiKey: string;
 }
 
 const DEFAULTS: Settings = {
@@ -14,6 +15,7 @@ const DEFAULTS: Settings = {
   notionParentPageId: '',
   subjectPageIds: {},
   shareToken: '',
+  anthropicApiKey: '',
 };
 
 function normalizePageId(raw: string): string {

@@ -8,6 +8,7 @@ import TimeboxGrid from '@/components/timebox/TimeboxGrid';
 import TodoSidebar from '@/components/todo/TodoSidebar';
 import BulkRegisterDialog from '@/components/bulk/BulkRegisterDialog';
 import SettingsDialog from '@/components/settings/SettingsDialog';
+import TimetableImportDialog from '@/components/timetable/TimetableImportDialog';
 import { useApp } from '@/lib/store';
 import { loadSettings, saveSettings } from '@/lib/settings';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
@@ -28,6 +29,7 @@ function HomeInner() {
 
   const [bulkOpen, setBulkOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
     if (!tokenFromUrl || !TOKEN_RE.test(tokenFromUrl)) return;
@@ -103,6 +105,14 @@ function HomeInner() {
         >
           + 一括登録
         </button>
+        <button
+          type="button"
+          onClick={() => setImportOpen(true)}
+          className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          title="UTOL のスクショから時間割を取り込む"
+        >
+          📷 取り込み
+        </button>
         <Link
           href="/calendar"
           className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
@@ -142,6 +152,7 @@ function HomeInner() {
 
       <BulkRegisterDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <TimetableImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
     </main>
   );
 }

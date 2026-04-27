@@ -33,6 +33,7 @@ function Body({ onClose }: { onClose: () => void }) {
   const initial = loadSettings();
   const [token, setToken] = useState(initial.notionToken);
   const [parentPageId, setParentPageId] = useState(initial.notionParentPageId);
+  const [anthropicApiKey, setAnthropicApiKey] = useState(initial.anthropicApiKey);
   const [shareToken, setShareToken] = useState(() => {
     if (initial.shareToken) return initial.shareToken;
     const t = generateShareToken();
@@ -118,6 +119,7 @@ function Body({ onClose }: { onClose: () => void }) {
     saveSettings({
       notionToken: token.trim(),
       notionParentPageId: parentPageId.trim(),
+      anthropicApiKey: anthropicApiKey.trim(),
       shareToken: shareToken.trim(),
     });
     onClose();
@@ -304,6 +306,45 @@ function Body({ onClose }: { onClose: () => void }) {
               <li>親ページ右上の「…」→ Connections → 作成した integration を追加</li>
               <li>親ページ URL 末尾の 32 文字をコピー → 上の 親ページ ID 欄に貼る</li>
               <li>「接続テスト」で緑色のチェックが出れば保存</li>
+            </ol>
+          </details>
+        </section>
+
+        <section className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-700">
+          <h3 className="text-sm font-semibold">📷 時間割スクショ取り込み (Anthropic API)</h3>
+          <p className="mt-1 text-xs text-slate-500">
+            UTOL のスクショを Claude が読み取って科目を自動登録します。API キーはブラウザにのみ保存され、画像解析時にだけサーバー経由で送信されます。
+          </p>
+
+          <label className="mt-3 block text-sm">
+            <span className="text-slate-600 dark:text-slate-300">Anthropic API Key</span>
+            <input
+              type="password"
+              value={anthropicApiKey}
+              onChange={(e) => setAnthropicApiKey(e.target.value)}
+              placeholder="sk-ant-..."
+              className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 font-mono text-xs dark:border-slate-700 dark:bg-slate-800"
+            />
+          </label>
+
+          <details className="mt-3 rounded border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+            <summary className="cursor-pointer font-medium">API キー取得手順</summary>
+            <ol className="mt-2 list-decimal space-y-1 pl-5">
+              <li>
+                <a
+                  href="https://console.anthropic.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sky-600 underline"
+                >
+                  console.anthropic.com
+                </a>{' '}
+                でアカウント作成（Google ログイン可）
+              </li>
+              <li>新規登録で $5 分の無料クレジットが付与されます</li>
+              <li>左メニュー「API keys」→「Create Key」→ コピー（`sk-ant-...`）</li>
+              <li>上の Anthropic API Key 欄に貼る → 保存</li>
+              <li>1 枚あたり ~$0.01 程度なので無料枠で 500 枚以上解析可能</li>
             </ol>
           </details>
         </section>
