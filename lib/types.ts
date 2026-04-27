@@ -46,5 +46,6 @@ export interface Todo {
   id: string;
   title: string;
   done: boolean;
+  deadline?: string;
   createdAt: number;
 }

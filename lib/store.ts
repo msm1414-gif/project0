@@ -6,13 +6,24 @@ import { loadSettings } from './settings';
 import { pullFromCloud, syncEventsToCloud } from './sync-client';
 import { isJapaneseHoliday } from './holidays';
 import { fallSemester, PERIOD_TIMES, springSemester } from './semesters';
-import { formatDate, parseDate } from './time';
+import { formatDate, parseDate, todayStr } from './time';
 
 function uid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function pruneExpiredTodos(todos: Todo[]): { kept: Todo[]; expiredIds: string[] } {
+  const today = todayStr();
+  const kept: Todo[] = [];
+  const expiredIds: string[] = [];
+  for (const t of todos) {
+    if (t.deadline && !t.done && t.deadline < today) expiredIds.push(t.id);
+    else kept.push(t);
+  }
+  return { kept, expiredIds };
 }
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -48,7 +59,7 @@ interface AppState {
   updateEvent: (id: string, patch: Partial<Omit<Event, 'id' | 'createdAt'>>) => void;
   removeEvent: (id: string) => void;
   removeGroup: (groupId: string) => void;
-  addTodo: (title: string) => Todo;
+  addTodo: (title: string, deadline?: string) => Todo;
   toggleTodo: (id: string) => void;
   removeTodo: (id: string) => void;
   saveTimetable: (t: Timetable) => void;
@@ -77,19 +88,30 @@ export const useApp = create<AppState>((set, get) => ({
     } catch {
       /* first run */
     }
+    {
+      const { kept, expiredIds } = pruneExpiredTodos(todos);
+      if (expiredIds.length > 0) {
+        for (const id of expiredIds) void db.deleteTodo(id);
+        todos = kept;
+      }
+    }
     set({ events, todos, timetables, hydrated: true });
     const { shareToken } = loadSettings();
     if (shareToken) {
       try {
         const snap = await pullFromCloud(shareToken);
         if (!snap.empty) {
+          const { kept, expiredIds } = pruneExpiredTodos(snap.todos);
           set({
             events: snap.events,
-            todos: snap.todos,
+            todos: kept,
             timetables: snap.timetables,
             lastSyncedAt: snap.updatedAt,
           });
-          await db.replaceAll(snap.events, snap.todos, snap.timetables).catch(() => {});
+          await db.replaceAll(snap.events, kept, snap.timetables).catch(() => {});
+          if (expiredIds.length > 0) {
+            void syncEventsToCloud(shareToken, snap.events, kept, snap.timetables).catch(() => {});
+          }
         } else {
           void syncEventsToCloud(shareToken, events, todos, timetables).catch(() => {});
         }
@@ -104,13 +126,17 @@ export const useApp = create<AppState>((set, get) => ({
     try {
       const snap = await pullFromCloud(shareToken);
       if (snap.empty) return { ok: true, empty: true };
+      const { kept, expiredIds } = pruneExpiredTodos(snap.todos);
       set({
         events: snap.events,
-        todos: snap.todos,
+        todos: kept,
         timetables: snap.timetables,
         lastSyncedAt: snap.updatedAt,
       });
-      await db.replaceAll(snap.events, snap.todos, snap.timetables).catch(() => {});
+      await db.replaceAll(snap.events, kept, snap.timetables).catch(() => {});
+      if (expiredIds.length > 0) {
+        void syncEventsToCloud(shareToken, snap.events, kept, snap.timetables).catch(() => {});
+      }
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
@@ -168,8 +194,14 @@ export const useApp = create<AppState>((set, get) => ({
     void db.deleteEventsByGroup(groupId);
     schedulePush(get().events, get().todos, get().timetables);
   },
-  addTodo: (title) => {
-    const t: Todo = { id: uid(), title, done: false, createdAt: Date.now() };
+  addTodo: (title, deadline) => {
+    const t: Todo = {
+      id: uid(),
+      title,
+      done: false,
+      ...(deadline ? { deadline } : {}),
+      createdAt: Date.now(),
+    };
     set((s) => ({ todos: [...s.todos, t] }));
     void db.saveTodo(t);
     schedulePush(get().events, get().todos, get().timetables);
