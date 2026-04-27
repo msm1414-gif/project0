@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { Event, Timetable, Todo } from './types';
 
+const isVercel = !!process.env.VERCEL;
 const useKV = !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN;
 
 const localFile = () => path.join(process.cwd(), '.data', 'sync.json');
@@ -12,6 +13,13 @@ export type Snapshot = {
   todos: Todo[];
   timetables: Timetable[];
 };
+
+const SETUP_MESSAGE =
+  'クラウドストレージ未設定: Vercel ダッシュボード → Storage タブで KV (Upstash Redis) を追加し、プロジェクトに接続してから Redeploy してください。';
+
+function ensureStorageReady() {
+  if (isVercel && !useKV) throw new Error(SETUP_MESSAGE);
+}
 
 async function readLocal(): Promise<Record<string, Snapshot>> {
   try {
@@ -31,6 +39,7 @@ async function writeLocal(data: Record<string, Snapshot>): Promise<void> {
 }
 
 export async function getSnapshot(token: string): Promise<Snapshot | null> {
+  ensureStorageReady();
   if (useKV) {
     const { kv } = await import('@vercel/kv');
     const got = (await kv.get<Snapshot>(`snap:${token}`)) ?? null;
@@ -59,6 +68,7 @@ export async function putSnapshot(
   todos: Todo[],
   timetables: Timetable[],
 ): Promise<Snapshot> {
+  ensureStorageReady();
   const snap: Snapshot = { updatedAt: Date.now(), events, todos, timetables };
   if (useKV) {
     const { kv } = await import('@vercel/kv');
