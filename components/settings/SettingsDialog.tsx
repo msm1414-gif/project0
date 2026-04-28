@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { generateShareToken, loadSettings, saveSettings } from '@/lib/settings';
 import { testNotion } from '@/lib/notion-client';
 import { icsUrlFor, shareUrlFor } from '@/lib/sync-client';
@@ -63,6 +64,8 @@ function Body({ onClose }: { onClose: () => void }) {
   });
   const [pushState, setPushState] = useState<PushState>({ status: getInitialPushStatus() });
   const [pushMessage, setPushMessage] = useState<string | null>(null);
+  const [showQR, setShowQR] = useState(false);
+  const [tokenApplied, setTokenApplied] = useState<string | null>(null);
   const ios = isIOS();
   const standalone = isStandalone();
   const [test, setTest] = useState<TestState>({ status: 'idle' });
@@ -111,6 +114,24 @@ function Body({ onClose }: { onClose: () => void }) {
     } else {
       setPull({ status: 'error', message: res.error ?? '取得に失敗しました' });
     }
+  }
+
+  function onApplyToken() {
+    let extracted = shareToken.trim();
+    // URL を貼り付けた場合は ?t=... 部分を抽出
+    const m = extracted.match(/[?&]t=([A-Za-z0-9_-]{16,128})/);
+    if (m) extracted = m[1];
+    if (!/^[A-Za-z0-9_-]{16,128}$/.test(extracted)) {
+      setTokenApplied('✗ トークン形式が不正です');
+      return;
+    }
+    saveSettings({ shareToken: extracted });
+    setShareToken(extracted);
+    setTokenApplied('✓ トークンを保存、データを取得中...');
+    void pullNow().then((r) => {
+      if (r.ok) setTokenApplied(`✓ トークン適用完了${r.empty ? '（クラウドは空でした）' : ''}`);
+      else setTokenApplied(`✗ ${r.error}`);
+    });
   }
 
   function onRegenerateToken() {
@@ -215,29 +236,75 @@ function Body({ onClose }: { onClose: () => void }) {
         <section className="mt-4">
           <h3 className="text-sm font-semibold">📱 スマホと双方向同期</h3>
           <p className="mt-1 text-xs text-slate-500">
-            下の「スマホ用 URL」をスマホのブラウザで開くと、同じデータに接続して編集もできます。PC・スマホの両方で編集した内容は自動的にクラウド経由で同期されます（1〜2 秒のディレイあり）。
+            PC とスマホで同じ「共有トークン」を使うとデータが同期されます。スマホには QR コードか手動コピペで転送してください。
           </p>
 
           <div className="mt-3">
-            <div className="text-sm text-slate-600 dark:text-slate-300">スマホ用 URL</div>
+            <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
+              <span>共有トークン</span>
+              <button
+                type="button"
+                onClick={() => setShowQR((v) => !v)}
+                className="text-[11px] text-sky-600 underline hover:text-sky-700"
+              >
+                {showQR ? 'QR を隠す' : '📷 QR コード表示'}
+              </button>
+            </div>
             <div className="mt-1 flex gap-2">
               <input
-                readOnly
-                value={shareUrl}
-                className="flex-1 rounded border border-slate-300 bg-slate-50 px-2 py-1.5 font-mono text-xs dark:border-slate-700 dark:bg-slate-800"
-                onFocus={(e) => e.currentTarget.select()}
+                value={shareToken}
+                onChange={(e) => setShareToken(e.target.value)}
+                placeholder="トークンを貼り付け / 編集"
+                className="flex-1 rounded border border-slate-300 bg-white px-2 py-1.5 font-mono text-xs dark:border-slate-700 dark:bg-slate-800"
               />
+              <button
+                type="button"
+                onClick={onApplyToken}
+                className="rounded bg-sky-600 px-3 py-1.5 text-sm text-white hover:bg-sky-700"
+              >
+                適用
+              </button>
+            </div>
+            {tokenApplied && (
+              <div
+                className={`mt-1 text-[11px] ${tokenApplied.startsWith('✓') ? 'text-emerald-600' : 'text-red-600'}`}
+              >
+                {tokenApplied}
+              </div>
+            )}
+            {showQR && shareToken && (
+              <div className="mt-3 flex flex-col items-center gap-2 rounded border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-100">
+                <QRCodeSVG value={shareUrl} size={200} level="M" />
+                <div className="text-center text-[11px] text-slate-600">
+                  iPhone のカメラアプリで読み取って Safari で開く →<br />
+                  共有 → ホーム画面に追加
+                </div>
+              </div>
+            )}
+            <div className="mt-2 text-[11px] text-slate-500">
+              スマホ用 URL: <span className="break-all font-mono">{shareUrl}</span>
+            </div>
+            <div className="mt-2 flex gap-2">
               <button
                 type="button"
                 onClick={() => onCopy('share')}
                 disabled={!shareUrl}
-                className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:hover:bg-slate-800"
+                className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:hover:bg-slate-800"
               >
-                {copiedShare ? '✓ コピー' : 'コピー'}
+                {copiedShare ? '✓ URL コピー' : 'URL コピー'}
               </button>
-            </div>
-            <div className="mt-1 text-[11px] text-slate-500">
-              スマホのブラウザで開くと自動的に設定 → クラウド側のデータを取得します
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!shareToken) return;
+                  try {
+                    await navigator.clipboard.writeText(shareToken);
+                  } catch {}
+                }}
+                className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+              >
+                トークンのみコピー
+              </button>
             </div>
           </div>
 
