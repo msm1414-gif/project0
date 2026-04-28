@@ -1,9 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { generateShareToken, loadSettings, saveSettings } from '@/lib/settings';
 import { testNotion } from '@/lib/notion-client';
 import { icsUrlFor, shareUrlFor } from '@/lib/sync-client';
+import {
+  getCurrentSubscription,
+  isIOS,
+  isStandalone,
+  sendTestPush,
+  subscribePush,
+  unsubscribePush,
+} from '@/lib/push-client';
 import { useApp } from '@/lib/store';
 
 interface Props {
@@ -29,6 +37,19 @@ type PullState =
   | { status: 'done'; at: number; empty: boolean }
   | { status: 'error'; message: string };
 
+type PushState =
+  | { status: 'idle' }
+  | { status: 'busy' }
+  | { status: 'enabled' }
+  | { status: 'denied' }
+  | { status: 'error'; message: string };
+
+function getInitialPushStatus(): 'idle' | 'enabled' | 'denied' {
+  if (typeof window === 'undefined' || !('Notification' in window)) return 'idle';
+  if (Notification.permission === 'denied') return 'denied';
+  return 'idle';
+}
+
 function Body({ onClose }: { onClose: () => void }) {
   const initial = loadSettings();
   const [token, setToken] = useState(initial.notionToken);
@@ -40,6 +61,10 @@ function Body({ onClose }: { onClose: () => void }) {
     saveSettings({ shareToken: t });
     return t;
   });
+  const [pushState, setPushState] = useState<PushState>({ status: getInitialPushStatus() });
+  const [pushMessage, setPushMessage] = useState<string | null>(null);
+  const ios = isIOS();
+  const standalone = isStandalone();
   const [test, setTest] = useState<TestState>({ status: 'idle' });
   const [sync, setSync] = useState<SyncState>({ status: 'idle' });
   const [pull, setPull] = useState<PullState>({ status: 'idle' });
@@ -114,6 +139,60 @@ function Body({ onClose }: { onClose: () => void }) {
       /* ignore */
     }
   }
+
+  async function onEnableNotifications() {
+    if (!shareToken) return;
+    setPushState({ status: 'busy' });
+    setPushMessage(null);
+    try {
+      await subscribePush(shareToken);
+      setPushState({ status: 'enabled' });
+      setPushMessage('通知を有効にしました。');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (typeof window !== 'undefined' && Notification.permission === 'denied') {
+        setPushState({ status: 'denied' });
+      } else {
+        setPushState({ status: 'error', message: msg });
+      }
+    }
+  }
+
+  async function onDisableNotifications() {
+    if (!shareToken) return;
+    setPushState({ status: 'busy' });
+    setPushMessage(null);
+    try {
+      await unsubscribePush(shareToken);
+      setPushState({ status: 'idle' });
+      setPushMessage('通知を解除しました。');
+    } catch (err) {
+      setPushState({ status: 'error', message: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  async function onTestPush() {
+    if (!shareToken) return;
+    setPushMessage(null);
+    const res = await sendTestPush(shareToken);
+    if (res.ok) {
+      setPushMessage(`テスト通知を ${res.sent ?? 0} 端末に送信しました`);
+    } else {
+      setPushMessage(`テスト失敗: ${res.error}`);
+    }
+  }
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    let cancelled = false;
+    void getCurrentSubscription().then((sub) => {
+      if (!cancelled && sub) setPushState({ status: 'enabled' });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function onSave() {
     saveSettings({
@@ -235,6 +314,73 @@ function Body({ onClose }: { onClose: () => void }) {
               ※ URL を知っている人は予定の閲覧・編集が可能です
             </span>
           </div>
+        </section>
+
+        <section className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-700">
+          <h3 className="text-sm font-semibold">🔔 期限通知 (毎朝 8:00)</h3>
+          <p className="mt-1 text-xs text-slate-500">
+            その日が期限の ToDo と、翌日が期限の ToDo を毎朝 8:00 (JST) にプッシュ通知で知らせます。
+          </p>
+
+          {ios && !standalone && (
+            <div className="mt-2 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              ⚠️ iPhone/iPad では通知を受け取るために <strong>このページをホーム画面に追加</strong> してから開く必要があります。
+              <br />
+              共有ボタン → 「ホーム画面に追加」→ ホーム画面のアイコンから開いて再度ここを開いてください。
+            </div>
+          )}
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {pushState.status === 'enabled' ? (
+              <>
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200">
+                  ✓ 通知有効
+                </span>
+                <button
+                  type="button"
+                  onClick={onTestPush}
+                  className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+                >
+                  テスト通知を送る
+                </button>
+                <button
+                  type="button"
+                  onClick={onDisableNotifications}
+                  className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                >
+                  通知を解除
+                </button>
+              </>
+            ) : pushState.status === 'denied' ? (
+              <div className="text-xs text-red-600 dark:text-red-400">
+                ✗ 通知がブロックされています。ブラウザ設定からこのサイトの通知を「許可」に変更してください。
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={onEnableNotifications}
+                disabled={pushState.status === 'busy'}
+                className="rounded bg-slate-900 px-3 py-1.5 text-sm text-white disabled:opacity-40 dark:bg-white dark:text-slate-900"
+              >
+                {pushState.status === 'busy' ? '処理中...' : '🔔 通知を有効にする'}
+              </button>
+            )}
+          </div>
+          {pushMessage && (
+            <div className="mt-2 text-xs text-slate-600 dark:text-slate-300">{pushMessage}</div>
+          )}
+          {pushState.status === 'error' && (
+            <div className="mt-2 text-xs text-red-600 dark:text-red-400">✗ {pushState.message}</div>
+          )}
+          <details className="mt-2 text-xs text-slate-500">
+            <summary className="cursor-pointer">仕組みと前提</summary>
+            <ul className="mt-1 list-disc space-y-1 pl-5">
+              <li>Vercel KV と VAPID キーが設定されている必要があります（README または管理者に確認）</li>
+              <li>iPhone はホーム画面に追加した PWA としてのみ通知受信可能 (iOS 16.4+)</li>
+              <li>Android Chrome / Firefox / Edge は通常のブラウザでも OK</li>
+              <li>各端末で個別に「通知を有効にする」を押す必要あり</li>
+            </ul>
+          </details>
         </section>
 
         <section className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-700">
