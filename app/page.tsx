@@ -33,14 +33,10 @@ function HomeInner() {
 
   useEffect(() => {
     if (!tokenFromUrl || !TOKEN_RE.test(tokenFromUrl)) return;
-    if (loadSettings().shareToken === tokenFromUrl) {
-      router.replace(queryDate ? `/?date=${queryDate}` : '/');
-      return;
-    }
+    if (loadSettings().shareToken === tokenFromUrl) return;
     saveSettings({ shareToken: tokenFromUrl });
-    router.replace(queryDate ? `/?date=${queryDate}` : '/');
     void pullNow();
-  }, [tokenFromUrl, queryDate, router, pullNow]);
+  }, [tokenFromUrl, pullNow]);
 
   useEffect(() => {
     void hydrate();
