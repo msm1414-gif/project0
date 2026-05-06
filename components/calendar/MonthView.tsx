@@ -6,6 +6,7 @@ import { addDays, endOfMonth, endOfWeek, startOfMonth, startOfWeek } from 'date-
 import { useApp } from '@/lib/store';
 import { CATEGORY_STYLES } from '@/lib/colors';
 import { formatDate, formatMinutes, parseDate, todayStr } from '@/lib/time';
+import { calendarTodosByDate, todoIcon } from '@/lib/todo-calendar';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -15,6 +16,7 @@ interface Props {
 
 export default function MonthView({ anchor }: Props) {
   const events = useApp((s) => s.events);
+  const todos = useApp((s) => s.todos);
   const anchorDate = parseDate(anchor);
   const gridStart = startOfWeek(startOfMonth(anchorDate), { weekStartsOn: 0 });
   const gridEnd = endOfWeek(endOfMonth(anchorDate), { weekStartsOn: 0 });
@@ -28,6 +30,7 @@ export default function MonthView({ anchor }: Props) {
     }
   }
 
+  const todoMap = calendarTodosByDate(todos);
   const today = todayStr();
   const currentMonth = anchorDate.getMonth();
 
@@ -46,8 +49,12 @@ export default function MonthView({ anchor }: Props) {
           const dayEvents = events
             .filter((e) => e.date === date)
             .sort((a, b) => a.startMinutes - b.startMinutes);
-          const visible = dayEvents.slice(0, 3);
-          const extra = dayEvents.length - visible.length;
+          const dayTodos = todoMap.get(date) ?? [];
+          const totalItems = dayEvents.length + dayTodos.length;
+          const visibleTodos = dayTodos.slice(0, 2);
+          const remainingForEvents = Math.max(0, 3 - visibleTodos.length);
+          const visibleEvents = dayEvents.slice(0, remainingForEvents);
+          const extra = totalItems - visibleTodos.length - visibleEvents.length;
           return (
             <Link
               key={date}
@@ -66,7 +73,15 @@ export default function MonthView({ anchor }: Props) {
               >
                 {d.getDate()}
               </div>
-              {visible.map((e) => (
+              {visibleTodos.map((t) => (
+                <div
+                  key={t.id}
+                  className="truncate rounded bg-rose-100 px-1 py-0.5 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200"
+                >
+                  {todoIcon(t.title)} {t.title}
+                </div>
+              ))}
+              {visibleEvents.map((e) => (
                 <div key={e.id} className="flex items-center gap-1 truncate">
                   <span className={clsx('h-1.5 w-1.5 shrink-0 rounded-full', CATEGORY_STYLES[e.category].dot)} />
                   <span className="text-slate-500">{formatMinutes(e.startMinutes)}</span>

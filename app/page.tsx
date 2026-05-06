@@ -12,6 +12,7 @@ import TimetableGridDialog from '@/components/timetable/TimetableGridDialog';
 import { useApp } from '@/lib/store';
 import { loadSettings, saveSettings } from '@/lib/settings';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
+import { calendarTodosByDate, todoIcon } from '@/lib/todo-calendar';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TOKEN_RE = /^[A-Za-z0-9_-]{16,128}$/;
@@ -20,12 +21,14 @@ function HomeInner() {
   const hydrate = useApp((s) => s.hydrate);
   const hydrated = useApp((s) => s.hydrated);
   const pullNow = useApp((s) => s.pullNow);
+  const todos = useApp((s) => s.todos);
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryDate = searchParams.get('date');
   const tokenFromUrl = searchParams.get('t');
   const selectedDate = queryDate && DATE_RE.test(queryDate) ? queryDate : todayStr();
+  const dayTodos = calendarTodosByDate(todos).get(selectedDate) ?? [];
 
   const [bulkOpen, setBulkOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -131,6 +134,22 @@ function HomeInner() {
           ⚙️
         </button>
       </header>
+
+      {dayTodos.length > 0 && (
+        <div className="rounded-md border border-rose-200 bg-rose-50 p-3 dark:border-rose-800 dark:bg-rose-950/30">
+          <div className="mb-1 text-xs font-semibold text-rose-700 dark:text-rose-300">この日の試験・課題</div>
+          <ul className="flex flex-wrap gap-2 text-sm">
+            {dayTodos.map((t) => (
+              <li
+                key={t.id}
+                className="rounded-full bg-rose-100 px-3 py-1 text-rose-800 dark:bg-rose-900/50 dark:text-rose-200"
+              >
+                {todoIcon(t.title)} {t.title}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_280px]">
         <section className="overflow-y-auto rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
