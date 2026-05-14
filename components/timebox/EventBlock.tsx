@@ -51,6 +51,10 @@ export default function EventBlock({ event, onChange, onClick }: Props) {
   }, []);
 
   function startDrag(mode: DragMode, target: HTMLElement, pointerId: number, clientY: number) {
+    // ドラッグ開始と同時に touch-action: none を即座に適用し、
+    // iOS がスクロール方向を確定するのを防ぐ
+    if (ref.current) ref.current.style.touchAction = 'none';
+    target.style.touchAction = 'none';
     try {
       target.setPointerCapture(pointerId);
     } catch {}
@@ -131,11 +135,18 @@ export default function EventBlock({ event, onChange, onClick }: Props) {
     setPreview({ start, end });
   }
 
+  function restoreTouchAction(e: React.PointerEvent<HTMLDivElement>) {
+    if (ref.current) ref.current.style.touchAction = '';
+    (e.currentTarget as HTMLElement).style.touchAction = '';
+    (e.target as HTMLElement).style.touchAction = '';
+  }
+
   function endDrag(e: React.PointerEvent<HTMLDivElement>) {
     const lp = longPressRef.current;
     longPressRef.current = null;
     const d = dragRef.current;
     dragRef.current = null;
+    restoreTouchAction(e);
 
     if (lp) {
       clearTimeout(lp.timer);

@@ -62,6 +62,8 @@ export default function TimeboxGrid({ date }: Props) {
   function beginSelection(clientY: number, pointerId: number, target: HTMLElement) {
     const anchor = snap(yToMinutes(clientY));
     selectingRef.current = { anchor, pointerId, moved: false };
+    // 選択開始と同時にスクロールを止める
+    if (gridRef.current) gridRef.current.style.touchAction = 'none';
     try {
       target.setPointerCapture(pointerId);
     } catch {}
@@ -130,6 +132,7 @@ export default function TimeboxGrid({ date }: Props) {
 
   function finishSelection(e: React.PointerEvent<HTMLDivElement>, commit: boolean) {
     cancelLongPress();
+    if (gridRef.current) gridRef.current.style.touchAction = '';
     const s = selectingRef.current;
     selectingRef.current = null;
     if (!s) return;
