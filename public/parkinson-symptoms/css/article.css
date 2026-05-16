@@ -1,0 +1,357 @@
+@charset "UTF-8";
+
+:root {
+  --handai: #2D287F;
+  --handai-light: #E8E7F2;
+  --handai-text: #1F1A5C;
+  --salmon: #E8857B;
+  --salmon-light: #FBEEEC;
+  --salmon-text: #A85850;
+  --mint: #5FB89F;
+  --mint-light: #E6F4EF;
+  --mint-text: #3D8870;
+  --text: #171717;
+  --text-sub: #525252;
+  --caption: #A3A3A3;
+  --border: #E5E5E5;
+  --white: #FFFFFF;
+  --card-bg: #FAFAFA;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--white);
+  color: var(--text);
+  font-family: "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴ ProN W3",
+               "Noto Sans JP", "メイリオ", Meiryo, sans-serif;
+  font-weight: 400;
+  line-height: 1.85;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+p {
+  margin: 0;
+}
+
+.article {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0;
+  background: var(--white);
+}
+
+/* ============ ① 記事タイトル ============ */
+.article-title {
+  padding: 32px 20px 24px;
+}
+
+.article-title h1 {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+/* ============ 吹き出し ============ */
+.dialog {
+  padding: 0 20px 28px;
+}
+
+.balloon {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.balloon:last-child {
+  margin-bottom: 0;
+}
+
+.balloon.right {
+  flex-direction: row-reverse;
+}
+
+.balloon-icon {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--salmon-light);
+  border: 1px solid var(--salmon);
+}
+
+.balloon.right .balloon-icon {
+  background: var(--handai-light);
+  border-color: var(--handai);
+}
+
+.balloon-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.balloon-icon-label {
+  font-size: 11px;
+  color: var(--salmon-text);
+  text-align: center;
+  line-height: 1.1;
+}
+
+.balloon.right .balloon-icon-label {
+  color: var(--handai-text);
+}
+
+.balloon-body {
+  flex: 1;
+  padding: 14px 16px;
+  border-radius: 4px 18px 18px 18px;
+  background: var(--salmon-light);
+  color: var(--salmon-text);
+}
+
+.balloon.right .balloon-body {
+  background: var(--handai-light);
+  color: var(--handai-text);
+  border-radius: 18px 4px 18px 18px;
+}
+
+.balloon-body p {
+  font-size: 20px;
+  line-height: 1.85;
+  margin: 0;
+}
+
+/* ============ ③ 本文 ============ */
+.lead {
+  padding: 0 20px 28px;
+}
+
+.lead p {
+  font-size: 22px;
+  line-height: 1.9;
+  color: var(--text);
+}
+
+.marker {
+  background: var(--salmon-light);
+  padding: 2px 4px;
+}
+
+/* ============ ④ 図解 ============ */
+.figure {
+  margin: 0 20px 28px;
+}
+
+.figure-card {
+  background: var(--card-bg);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.figure-block {
+  padding: 26px 16px;
+  text-align: center;
+}
+
+.figure-block + .figure-block {
+  border-top: 1px dashed var(--border);
+}
+
+.figure-block img {
+  margin: 0 auto 14px;
+  max-width: 100%;
+}
+
+.figure-label {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.figure-label.healthy {
+  color: var(--mint-text);
+}
+
+.figure-label.parkinson {
+  color: var(--text-sub);
+}
+
+.figure-desc {
+  font-size: 17px;
+  color: var(--text-sub);
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ============ ⑤ 中見出し ============ */
+.section-heading {
+  padding: 0 20px 16px;
+}
+
+.section-heading h2 {
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0;
+  padding: 12px 0 12px 16px;
+  border-left: 6px solid var(--handai);
+}
+
+.section-heading .section-lead {
+  font-size: 22px;
+  line-height: 1.9;
+  color: var(--text-sub);
+  margin: 16px 0 0;
+}
+
+/* ============ ⑥⑪ カテゴリ ============ */
+.category {
+  padding: 22px 20px 16px;
+}
+
+.category-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.category-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--mint-light);
+  color: var(--mint-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 19px;
+  border: 1px solid var(--mint);
+  flex-shrink: 0;
+}
+
+.category h3 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0;
+}
+
+.category-sub {
+  font-size: 17px;
+  color: var(--text-sub);
+  margin: 8px 0 0 52px;
+  line-height: 1.7;
+}
+
+/* ============ ⑦〜⑩ ⑫〜⑮ 症状カード ============ */
+.symptom {
+  padding: 0 20px 14px;
+}
+
+.symptom-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.symptom-illust {
+  background: var(--card-bg);
+  border-bottom: 1px dashed var(--border);
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.symptom-illust img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.symptom-text {
+  padding: 20px;
+}
+
+.symptom-text h4 {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.medical-term {
+  font-size: 16px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+
+.description {
+  font-size: 22px;
+  line-height: 1.9;
+  color: var(--text);
+  margin: 0;
+}
+
+/* ============ ⑰ 監修者情報 ============ */
+.supervisor {
+  margin: 0 20px 32px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+}
+
+.supervisor p {
+  font-size: 14px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.supervisor .label {
+  color: var(--caption);
+}
+
+/* ============ 末尾余白 ============ */
+.article > :last-child {
+  margin-bottom: 32px;
+}
