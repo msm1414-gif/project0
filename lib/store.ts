@@ -64,7 +64,7 @@ interface AppState {
   removeTodo: (id: string) => void;
   saveTimetable: (t: Timetable) => void;
   removeTimetable: (id: string) => void;
-  applyTimetable: (timetable: Timetable) => RegenerateResult;
+  applyTimetable: (timetable: Timetable, extraSourceIds?: Set<string>) => RegenerateResult;
   removeTimetableEvents: (timetableId: string) => number;
 }
 
@@ -248,8 +248,11 @@ export const useApp = create<AppState>((set, get) => ({
     schedulePush(get().events, get().todos, get().timetables);
     return before - get().events.length;
   },
-  applyTimetable: (timetable) => {
-    const oldEvents = get().events.filter((e) => e.timetableId === timetable.id);
+  applyTimetable: (timetable, extraSourceIds) => {
+    const extras = extraSourceIds ?? new Set<string>();
+    const oldEvents = get().events.filter(
+      (e) => e.timetableId === timetable.id || extras.has(e.id),
+    );
     const notionMap = new Map<string, { url: string; id: string }>();
     for (const ev of oldEvents) {
       if (ev.notionPageUrl && ev.notionPageId) {

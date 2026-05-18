@@ -15,6 +15,7 @@ import {
 } from '@/lib/semesters';
 import type { Timetable, TimetableCell } from '@/lib/types';
 import { formatMinutes } from '@/lib/time';
+import { deriveTimetableFromEvents } from '@/lib/timetable-derive';
 
 const DAYS = [1, 2, 3, 4, 5, 6];
 const DAY_LABELS = ['月', '火', '水', '木', '金', '土'];
@@ -39,6 +40,7 @@ export default function TimetableGridDialog({ open, onClose }: Props) {
 
 function Body({ onClose }: { onClose: () => void }) {
   const timetables = useApp((s) => s.timetables);
+  const events = useApp((s) => s.events);
   const saveTimetable = useApp((s) => s.saveTimetable);
   const removeTimetable = useApp((s) => s.removeTimetable);
   const removeTimetableEvents = useApp((s) => s.removeTimetableEvents);
@@ -56,10 +58,22 @@ function Body({ onClose }: { onClose: () => void }) {
     [timetables, semesterKey, year],
   );
 
+  const semester: Semester =
+    semesterKey === 'spring' ? springSemester(year) : fallSemester(year);
+
+  // Try provisional restore from existing events (when no saved timetable)
+  const derived = useMemo(() => {
+    if (existing) return null;
+    const d = deriveTimetableFromEvents(events, semester);
+    return Object.keys(d.cells).length > 0 ? d : null;
+  }, [existing, events, semester]);
+
   const [excludeHolidays, setExcludeHolidays] = useState(existing?.excludeHolidays ?? true);
   const [includeSat, setIncludeSat] = useState(existing?.includeSat ?? false);
   const [createNotion, setCreateNotion] = useState(existing?.createNotion ?? true);
-  const [grid, setGrid] = useState<Record<string, string>>(() => cellsToGrid(existing?.cells ?? []));
+  const [grid, setGrid] = useState<Record<string, string>>(() =>
+    existing ? cellsToGrid(existing.cells) : (derived?.cells ?? {}),
+  );
   // Track which (semester, year) the local state is synced from, to detect when user switches selectors
   const [syncedFor, setSyncedFor] = useState<string>(`${semesterKey}-${year}`);
 
@@ -67,16 +81,16 @@ function Body({ onClose }: { onClose: () => void }) {
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const semester: Semester =
-    semesterKey === 'spring' ? springSemester(year) : fallSemester(year);
   const notionConfigured = isNotionConfigured(loadSettings());
   const visibleDays = DAYS.filter((d) => includeSat || d !== 6);
 
-  // Auto-load saved timetable when semester or year changes
+  const isProvisional = !existing && !!derived;
+
+  // Auto-load saved timetable (or derived) when semester or year changes
   const currentKey = `${semesterKey}-${year}`;
   if (currentKey !== syncedFor) {
     setSyncedFor(currentKey);
-    setGrid(cellsToGrid(existing?.cells ?? []));
+    setGrid(existing ? cellsToGrid(existing.cells) : (derived?.cells ?? {}));
     setExcludeHolidays(existing?.excludeHolidays ?? true);
     setIncludeSat(existing?.includeSat ?? false);
     setCreateNotion(existing?.createNotion ?? true);
@@ -117,7 +131,7 @@ function Body({ onClose }: { onClose: () => void }) {
       saveTimetable(timetable);
 
       setProgress('既存予定を整理して再生成中...');
-      const result = applyTimetable(timetable);
+      const result = applyTimetable(timetable, derived?.sourceEventIds);
 
       let notionMessages = '';
       if (createNotion && notionConfigured) {
@@ -189,17 +203,29 @@ function Body({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
         className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900"
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">🗓️ 時間割</h2>
-          {existing && (
+          {existing ? (
             <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200">
               保存済み（{new Date(existing.updatedAt).toLocaleDateString('ja-JP')} 更新）
             </span>
-          )}
+          ) : isProvisional ? (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+              仮復元中（未保存）
+            </span>
+          ) : null}
         </div>
         <p className="mt-1 text-xs text-slate-500">
           科目を入れて「保存して反映」を押すと、学期内の予定が自動で組まれます。後から開いて編集すれば、関連予定が再生成されます。
         </p>
+
+        {stage === 'input' && isProvisional && (
+          <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+            ⚠️ <strong>仮復元モード</strong>: この学期に標準時限と一致する大学カテゴリの予定が
+            <strong>{derived?.sourceCount}</strong> 件見つかったので、各コマで最頻のタイトルを自動入力しています。
+            内容を確認・修正のうえ「保存して反映」を押すと、元の {derived?.sourceCount} 件は新しい時間割の予定に置き換えられ、以降は通常の編集が可能になります。
+          </div>
+        )}
 
         {stage === 'input' && (
           <>
