@@ -1,25 +1,67 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useSearchParams } from 'next/navigation';
 import clsx from 'clsx';
 import { addDays, addMonths, startOfWeek } from 'date-fns';
 import WeekView from '@/components/calendar/WeekView';
 import MonthView from '@/components/calendar/MonthView';
+import MobileCalendarView from '@/components/calendar/MobileCalendarView';
 import { useApp } from '@/lib/store';
+import { loadSettings, saveSettings } from '@/lib/settings';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
 
 type Mode = 'week' | 'month';
 
-export default function CalendarPage() {
+const TOKEN_RE = /^[A-Za-z0-9_-]{16,128}$/;
+
+function isMobileUA(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+function CalendarInner() {
   const hydrate = useApp((s) => s.hydrate);
   const hydrated = useApp((s) => s.hydrated);
+  const pullNow = useApp((s) => s.pullNow);
+  const searchParams = useSearchParams();
+  const tokenFromUrl = searchParams.get('t');
+  const forceView = searchParams.get('view'); // 'mobile' | 'week' | 'month' | null
 
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
 
-  const [mode, setMode] = useState<Mode>('week');
+  useEffect(() => {
+    if (!tokenFromUrl || !TOKEN_RE.test(tokenFromUrl)) return;
+    if (loadSettings().shareToken === tokenFromUrl) return;
+    saveSettings({ shareToken: tokenFromUrl });
+    void pullNow();
+  }, [tokenFromUrl, pullNow]);
+
+  // Decide which view to render (mobile UA / narrow viewport)
+  const isMobile = useSyncExternalStore(
+    (cb) => {
+      window.addEventListener('resize', cb);
+      return () => window.removeEventListener('resize', cb);
+    },
+    () => isMobileUA() || window.innerWidth < 640,
+    () => false,
+  );
+
+  const useMobile =
+    forceView === 'mobile' || (forceView !== 'week' && forceView !== 'month' && isMobile);
+
+  if (useMobile) {
+    return <MobileCalendarView />;
+  }
+
+  return <DesktopCalendar initialMode={forceView === 'month' ? 'month' : 'week'} hydrated={hydrated} />;
+}
+
+function DesktopCalendar({ initialMode, hydrated }: { initialMode: Mode; hydrated: boolean }) {
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [anchor, setAnchor] = useState<string>(todayStr());
 
   const title = useMemo(() => {
@@ -83,6 +125,12 @@ export default function CalendarPage() {
           </button>
         </div>
         <Link
+          href="/calendar?view=mobile"
+          className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+        >
+          連続表示
+        </Link>
+        <Link
           href="/"
           className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
         >
@@ -100,5 +148,13 @@ export default function CalendarPage() {
         <MonthView anchor={anchor} />
       )}
     </main>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-slate-500">読み込み中...</div>}>
+      <CalendarInner />
+    </Suspense>
   );
 }

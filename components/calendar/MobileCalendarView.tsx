@@ -1,0 +1,241 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import clsx from 'clsx';
+import { addDays, addMonths, eachDayOfInterval, endOfWeek, startOfWeek } from 'date-fns';
+import { useApp } from '@/lib/store';
+import { CATEGORY_STYLES } from '@/lib/colors';
+import { formatDate, parseDate, todayStr } from '@/lib/time';
+import { calendarTodosByDate, todoIcon } from '@/lib/todo-calendar';
+import QuickAddDialog from './QuickAddDialog';
+import SettingsDialog from '@/components/settings/SettingsDialog';
+
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+
+const RANGE_BEFORE_MONTHS = 6;
+const RANGE_AFTER_MONTHS = 12;
+
+export default function MobileCalendarView() {
+  const events = useApp((s) => s.events);
+  const todos = useApp((s) => s.todos);
+
+  const today = todayStr();
+  const todayDate = parseDate(today);
+
+  // Generate continuous date range (full weeks)
+  const start = startOfWeek(addMonths(todayDate, -RANGE_BEFORE_MONTHS), { weekStartsOn: 0 });
+  const end = endOfWeek(addMonths(todayDate, RANGE_AFTER_MONTHS), { weekStartsOn: 0 });
+  const days = eachDayOfInterval({ start, end }).map((d) => formatDate(d));
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [visibleMonth, setVisibleMonth] = useState<string>(today.slice(0, 7));
+  const [addOpen, setAddOpen] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  function scrollTo(date: string) {
+    const container = scrollRef.current;
+    if (!container) return;
+    const target = container.querySelector<HTMLElement>(`[data-date="${date}"]`);
+    if (!target) return;
+    const containerTop = container.getBoundingClientRect().top;
+    const targetTop = target.getBoundingClientRect().top;
+    container.scrollTop += targetTop - containerTop - 60;
+  }
+
+  // Scroll to today on mount
+  useEffect(() => {
+    scrollTo(today);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Track which month is most visible
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    let rafId = 0;
+    function onScroll() {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        const cells = container.querySelectorAll<HTMLElement>('[data-date]');
+        for (const cell of cells) {
+          const cr = cell.getBoundingClientRect();
+          if (cr.top <= center && cr.bottom >= center) {
+            const date = cell.dataset.date!;
+            setVisibleMonth(date.slice(0, 7));
+            return;
+          }
+        }
+      });
+    }
+    container.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => {
+      container.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  function jumpToToday() {
+    scrollTo(today);
+  }
+
+  const todoMap = calendarTodosByDate(todos);
+  const [visYear, visMonth] = visibleMonth.split('-').map(Number);
+  const monthLabel = `${visYear}年${visMonth}月`;
+
+  return (
+    <div className="flex h-[100dvh] flex-col">
+      {/* Day-of-week header */}
+      <div className="grid grid-cols-7 border-b border-slate-200 bg-white text-center text-xs font-medium dark:border-slate-700 dark:bg-slate-900">
+        {WEEKDAYS.map((w, i) => (
+          <div
+            key={w}
+            className={clsx(
+              'py-2',
+              i === 0 && 'text-red-600 dark:text-red-400',
+              i === 6 && 'text-blue-600 dark:text-blue-400',
+              i !== 0 && i !== 6 && 'text-slate-700 dark:text-slate-200',
+            )}
+          >
+            {w}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="grid grid-cols-7">
+          {days.map((date) => {
+            const d = parseDate(date);
+            const dow = d.getDay();
+            const dateMonth = date.slice(0, 7);
+            const isToday = date === today;
+            const isVisibleMonth = dateMonth === visibleMonth;
+
+            // Border edges for highlighting visible month boundary
+            const aboveDate = formatDate(addDays(d, -7));
+            const belowDate = formatDate(addDays(d, 7));
+            const leftDate = dow > 0 ? formatDate(addDays(d, -1)) : null;
+            const rightDate = dow < 6 ? formatDate(addDays(d, 1)) : null;
+            const aboveSame = aboveDate.slice(0, 7) === visibleMonth;
+            const belowSame = belowDate.slice(0, 7) === visibleMonth;
+            const leftSame = leftDate ? leftDate.slice(0, 7) === visibleMonth : false;
+            const rightSame = rightDate ? rightDate.slice(0, 7) === visibleMonth : false;
+
+            const dayEvents = events
+              .filter((e) => e.date === date)
+              .sort((a, b) => a.startMinutes - b.startMinutes);
+            const dayTodos = todoMap.get(date) ?? [];
+            const items = [
+              ...dayTodos.map((t) => ({ kind: 'todo' as const, item: t })),
+              ...dayEvents.map((e) => ({ kind: 'event' as const, item: e })),
+            ];
+            const isFirstOfMonth = d.getDate() === 1;
+            const numberLabel = isFirstOfMonth ? `${d.getMonth() + 1}月1日` : String(d.getDate());
+
+            const cell = (
+              <button
+                key={date}
+                data-date={date}
+                type="button"
+                onClick={() => setAddOpen(date)}
+                className={clsx(
+                  'relative flex min-h-[88px] flex-col gap-0.5 border-r border-b border-dotted border-slate-200 p-1 text-left dark:border-slate-700',
+                  isToday && 'bg-yellow-100 dark:bg-yellow-900/30',
+                  isVisibleMonth && !aboveSame && 'border-t-2 border-t-slate-700 dark:border-t-slate-200',
+                  isVisibleMonth && !belowSame && 'border-b-2 border-b-slate-700 dark:border-b-slate-200',
+                  isVisibleMonth && (!leftSame || dow === 0) && 'border-l-2 border-l-slate-700 dark:border-l-slate-200',
+                  isVisibleMonth && (!rightSame || dow === 6) && 'border-r-2 border-r-slate-700 dark:border-r-slate-200',
+                )}
+              >
+                <div
+                  className={clsx(
+                    'text-[11px] font-semibold',
+                    dow === 0 && 'text-red-600 dark:text-red-400',
+                    dow === 6 && 'text-blue-600 dark:text-blue-400',
+                    dow !== 0 && dow !== 6 && 'text-slate-800 dark:text-slate-100',
+                    !isVisibleMonth && 'opacity-60',
+                  )}
+                >
+                  {numberLabel}
+                </div>
+                {items.slice(0, 3).map((it) => {
+                  if (it.kind === 'todo') {
+                    return (
+                      <div
+                        key={`t-${it.item.id}`}
+                        className="truncate rounded-sm bg-rose-100 px-1 text-[10px] leading-snug text-rose-800 dark:bg-rose-900/40 dark:text-rose-200"
+                      >
+                        {todoIcon(it.item.title)}
+                        {it.item.title}
+                      </div>
+                    );
+                  }
+                  const ev = it.item;
+                  return (
+                    <div
+                      key={`e-${ev.id}`}
+                      className={clsx(
+                        'truncate rounded-sm px-1 text-[10px] leading-snug',
+                        ev.tentative
+                          ? CATEGORY_STYLES[ev.category].chipTentative
+                          : CATEGORY_STYLES[ev.category].chip,
+                      )}
+                    >
+                      {ev.title}
+                    </div>
+                  );
+                })}
+                {items.length > 3 && (
+                  <div className="text-[9px] text-slate-400">+{items.length - 3}</div>
+                )}
+              </button>
+            );
+            return cell;
+          })}
+        </div>
+        <div className="h-32" />
+      </div>
+
+      {/* Bottom toolbar */}
+      <div className="grid grid-cols-[1fr_2fr_1fr_1fr] items-center gap-1 border-t border-slate-200 bg-emerald-100 px-3 py-3 dark:border-slate-700 dark:bg-emerald-900/40">
+        <button
+          type="button"
+          onClick={jumpToToday}
+          className="rounded-md py-2 text-sm font-medium text-slate-800 dark:text-slate-100"
+        >
+          今日
+        </button>
+        <div className="text-center text-sm font-semibold text-slate-900 dark:text-slate-100">
+          {monthLabel}
+        </div>
+        <button
+          type="button"
+          onClick={() => setAddOpen(today)}
+          className="flex items-center justify-center rounded-md py-2 text-2xl font-bold text-slate-800 dark:text-slate-100"
+          aria-label="追加"
+        >
+          ＋
+        </button>
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          className="flex items-center justify-center rounded-md py-2 text-xl text-slate-800 dark:text-slate-100"
+          aria-label="設定"
+        >
+          ⚙️
+        </button>
+      </div>
+
+      <QuickAddDialog
+        open={addOpen !== null}
+        date={addOpen ?? today}
+        onClose={() => setAddOpen(null)}
+      />
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+    </div>
+  );
+}

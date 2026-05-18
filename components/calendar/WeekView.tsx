@@ -71,12 +71,30 @@ export default function WeekView({ anchor }: Props) {
                 <li className="text-slate-300 dark:text-slate-600">—</li>
               )}
               {dayEvents.map((e) => (
-                <li key={e.id} className="flex items-center gap-1 truncate">
+                <li
+                  key={e.id}
+                  className={clsx(
+                    'flex items-center gap-1 truncate',
+                    e.tentative && 'italic opacity-70',
+                  )}
+                >
                   <span
-                    className={clsx('h-1.5 w-1.5 shrink-0 rounded-full', CATEGORY_STYLES[e.category].dot)}
+                    className={clsx(
+                      'h-1.5 w-1.5 shrink-0 rounded-full',
+                      e.tentative ? `${CATEGORY_STYLES[e.category].dot} opacity-50` : CATEGORY_STYLES[e.category].dot,
+                    )}
                   />
                   <span className="text-slate-500">{formatMinutes(e.startMinutes)}</span>
-                  <span className="truncate text-slate-900 dark:text-slate-100">{e.title}</span>
+                  <span
+                    className={clsx(
+                      'truncate',
+                      e.tentative
+                        ? 'text-slate-600 underline decoration-dashed dark:text-slate-400'
+                        : 'text-slate-900 dark:text-slate-100',
+                    )}
+                  >
+                    {e.title}
+                  </span>
                 </li>
               ))}
             </ul>

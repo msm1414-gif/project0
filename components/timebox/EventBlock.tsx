@@ -181,7 +181,7 @@ export default function EventBlock({ event, onChange, onClick }: Props) {
       className={clsx(
         'absolute left-1 right-1 rounded-md shadow-sm cursor-grab active:cursor-grabbing select-none overflow-hidden touch-pan-y',
         preview && 'ring-2 ring-sky-400',
-        style.block,
+        event.tentative ? style.blockTentative : style.block,
       )}
       style={{
         top: minutesToPx(view.start),
