@@ -17,6 +17,7 @@ type Draft = {
   startMinutes: number;
   endMinutes: number;
   notes: string;
+  tentative: boolean;
 };
 
 export interface EventFormData {
@@ -25,6 +26,7 @@ export interface EventFormData {
   startMinutes: number;
   endMinutes: number;
   notes?: string;
+  tentative: boolean;
 }
 
 interface Props {
@@ -46,6 +48,7 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
         startMinutes: event.startMinutes,
         endMinutes: event.endMinutes,
         notes: event.notes ?? '',
+        tentative: !!event.tentative,
       };
     }
     return {
@@ -54,6 +57,7 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
       startMinutes: initial?.startMinutes ?? 9 * 60,
       endMinutes: initial?.endMinutes ?? 10 * 60,
       notes: '',
+      tentative: false,
     };
   });
 
@@ -77,6 +81,7 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
       startMinutes: draft.startMinutes,
       endMinutes: Math.min(DAY_MINUTES, draft.endMinutes),
       notes: draft.notes,
+      tentative: draft.tentative,
     });
   }
 
@@ -197,6 +202,29 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
             className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
           />
         </label>
+
+        <div className="mt-3 flex items-center justify-between rounded border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={draft.tentative}
+              onChange={(e) => setDraft((d) => ({ ...d, tentative: e.target.checked }))}
+              className="h-4 w-4 accent-slate-700"
+            />
+            <span className="text-slate-700 dark:text-slate-200">
+              仮置き <span className="text-slate-400">（破線・薄色で表示）</span>
+            </span>
+          </label>
+          {draft.tentative && (
+            <button
+              type="button"
+              onClick={() => setDraft((d) => ({ ...d, tentative: false }))}
+              className="rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+            >
+              ✓ 本登録に変更
+            </button>
+          )}
+        </div>
 
         {showNotionSection && (
           <div className="mt-3 rounded border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
