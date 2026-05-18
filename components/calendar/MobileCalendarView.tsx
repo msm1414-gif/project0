@@ -184,7 +184,7 @@ export default function MobileCalendarView() {
             const rightSame = rightDate ? rightDate.slice(0, 7) === visibleMonth : false;
 
             const dayEvents = events
-              .filter((e) => e.date === date)
+              .filter((e) => e.date === date && !e.timetableId)
               .sort((a, b) => a.startMinutes - b.startMinutes);
             const dayTodos = todoMap.get(date) ?? [];
             const items = [

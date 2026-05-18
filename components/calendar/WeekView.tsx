@@ -26,7 +26,7 @@ export default function WeekView({ anchor }: Props) {
     <div className="grid grid-cols-7 gap-2">
       {days.map((date, i) => {
         const dayEvents = events
-          .filter((e) => e.date === date)
+          .filter((e) => e.date === date && !e.timetableId)
           .sort((a, b) => a.startMinutes - b.startMinutes);
         const dayTodos = todoMap.get(date) ?? [];
         const dateObj = parseDate(date);

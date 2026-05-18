@@ -47,7 +47,7 @@ export default function MonthView({ anchor }: Props) {
           const inMonth = d.getMonth() === currentMonth;
           const isToday = date === today;
           const dayEvents = events
-            .filter((e) => e.date === date)
+            .filter((e) => e.date === date && !e.timetableId)
             .sort((a, b) => a.startMinutes - b.startMinutes);
           const dayTodos = todoMap.get(date) ?? [];
           const totalItems = dayEvents.length + dayTodos.length;
