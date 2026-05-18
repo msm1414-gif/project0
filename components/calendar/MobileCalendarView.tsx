@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { addDays, addMonths, eachDayOfInterval, endOfWeek, startOfWeek } from 'date-fns';
 import { useApp } from '@/lib/store';
@@ -31,6 +32,63 @@ export default function MobileCalendarView() {
   const [visibleMonth, setVisibleMonth] = useState<string>(today.slice(0, 7));
   const [addOpen, setAddOpen] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const router = useRouter();
+  const longPressRef = useRef<{
+    date: string;
+    startX: number;
+    startY: number;
+    timer: ReturnType<typeof setTimeout>;
+  } | null>(null);
+  const suppressClickRef = useRef(false);
+
+  function clearLongPress() {
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current.timer);
+      longPressRef.current = null;
+    }
+  }
+
+  function onCellPointerDown(date: string, e: React.PointerEvent<HTMLButtonElement>) {
+    clearLongPress();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    longPressRef.current = {
+      date,
+      startX,
+      startY,
+      timer: setTimeout(() => {
+        longPressRef.current = null;
+        suppressClickRef.current = true;
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          try {
+            navigator.vibrate?.(30);
+          } catch {}
+        }
+        router.push(`/?date=${date}`);
+      }, 350),
+    };
+  }
+
+  function onCellPointerMove(e: React.PointerEvent<HTMLButtonElement>) {
+    const lp = longPressRef.current;
+    if (!lp) return;
+    if (Math.abs(e.clientX - lp.startX) > 10 || Math.abs(e.clientY - lp.startY) > 10) {
+      clearLongPress();
+    }
+  }
+
+  function onCellPointerEnd() {
+    clearLongPress();
+  }
+
+  function onCellClick(date: string) {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    setAddOpen(date);
+  }
 
   function scrollTo(date: string) {
     const container = scrollRef.current;
@@ -141,7 +199,11 @@ export default function MobileCalendarView() {
                 key={date}
                 data-date={date}
                 type="button"
-                onClick={() => setAddOpen(date)}
+                onPointerDown={(e) => onCellPointerDown(date, e)}
+                onPointerMove={onCellPointerMove}
+                onPointerUp={onCellPointerEnd}
+                onPointerCancel={onCellPointerEnd}
+                onClick={() => onCellClick(date)}
                 className={clsx(
                   'relative flex min-h-[88px] flex-col gap-0.5 border-r border-b border-dotted border-slate-200 p-1 text-left dark:border-slate-700',
                   isToday && 'bg-yellow-100 dark:bg-yellow-900/30',
