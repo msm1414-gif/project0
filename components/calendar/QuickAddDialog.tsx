@@ -86,7 +86,7 @@ function Body({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="例: 友達とランチ"
-            className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+            className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-2 text-base dark:border-slate-700 dark:bg-slate-800"
           />
         </label>
 
@@ -96,7 +96,7 @@ function Body({
             <select
               value={startMin}
               onChange={(e) => setStartMin(Number(e.target.value))}
-              className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+              className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-2 text-base dark:border-slate-700 dark:bg-slate-800"
             >
               {times.slice(0, -1).map((t) => (
                 <option key={t.value} value={t.value}>
@@ -110,7 +110,7 @@ function Body({
             <select
               value={endMin}
               onChange={(e) => setEndMin(Number(e.target.value))}
-              className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+              className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-2 text-base dark:border-slate-700 dark:bg-slate-800"
             >
               {times.slice(1).map((t) => (
                 <option key={t.value} value={t.value}>

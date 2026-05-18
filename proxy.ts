@@ -5,6 +5,8 @@ const MOBILE_UA = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini
 
 export function proxy(request: NextRequest) {
   if (request.nextUrl.pathname !== '/') return NextResponse.next();
+  // クエリが付いている (?date=, ?t= など) アクセスは明示的なナビゲーションなのでリダイレクトしない
+  if (request.nextUrl.search) return NextResponse.next();
   const ua = request.headers.get('user-agent') ?? '';
   if (!MOBILE_UA.test(ua)) return NextResponse.next();
   const url = request.nextUrl.clone();
