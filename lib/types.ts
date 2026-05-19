@@ -1,10 +1,11 @@
-export type Category = 'university' | 'work' | 'leisure' | 'other';
+export type Category = 'university' | 'work' | 'circle' | 'leisure' | 'other';
 
-export const CATEGORIES: Category[] = ['university', 'work', 'leisure', 'other'];
+export const CATEGORIES: Category[] = ['university', 'work', 'circle', 'leisure', 'other'];
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   university: '大学',
   work: 'バイト',
+  circle: 'サークル',
   leisure: '遊び',
   other: 'その他',
 };

@@ -30,6 +30,16 @@ export const CATEGORY_STYLES: Record<Category, CategoryStyle> = {
       'bg-transparent text-amber-700 border border-dashed border-amber-400 opacity-80 dark:text-amber-300',
     swatch: 'bg-amber-500',
   },
+  circle: {
+    block: 'bg-red-100 border-l-4 border-red-500 text-red-900 hover:bg-red-200',
+    blockTentative:
+      'bg-red-50/50 border-l-4 border-dashed border-red-400 text-red-700 hover:bg-red-100 opacity-80',
+    dot: 'bg-red-500',
+    chip: 'bg-red-100 text-red-800 border border-red-300',
+    chipTentative:
+      'bg-transparent text-red-700 border border-dashed border-red-400 opacity-80 dark:text-red-300',
+    swatch: 'bg-red-500',
+  },
   leisure: {
     block: 'bg-emerald-100 border-l-4 border-emerald-500 text-emerald-900 hover:bg-emerald-200',
     blockTentative:
