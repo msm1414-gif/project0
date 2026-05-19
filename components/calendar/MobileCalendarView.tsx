@@ -10,7 +10,9 @@ import { CATEGORY_STYLES } from '@/lib/colors';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
 import { calendarTodosByDate, todoIcon } from '@/lib/todo-calendar';
 import QuickAddDialog from './QuickAddDialog';
+import NewEventDialog from '@/components/timebox/NewEventDialog';
 import SettingsDialog from '@/components/settings/SettingsDialog';
+import type { Event } from '@/lib/types';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -38,6 +40,10 @@ export default function MobileCalendarView() {
   const [visibleMonth, setVisibleMonth] = useState<string>(today.slice(0, 7));
   const [addOpen, setAddOpen] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [editEvent, setEditEvent] = useState<Event | null>(null);
+  const updateEvent = useApp((s) => s.updateEvent);
+  const removeEvent = useApp((s) => s.removeEvent);
+  const removeGroup = useApp((s) => s.removeGroup);
 
   const router = useRouter();
   const longPressRef = useRef<{
@@ -55,7 +61,7 @@ export default function MobileCalendarView() {
     }
   }
 
-  function onCellPointerDown(date: string, e: React.PointerEvent<HTMLButtonElement>) {
+  function onCellPointerDown(date: string, e: React.PointerEvent<HTMLElement>) {
     clearLongPress();
     const startX = e.clientX;
     const startY = e.clientY;
@@ -76,7 +82,7 @@ export default function MobileCalendarView() {
     };
   }
 
-  function onCellPointerMove(e: React.PointerEvent<HTMLButtonElement>) {
+  function onCellPointerMove(e: React.PointerEvent<HTMLElement>) {
     const lp = longPressRef.current;
     if (!lp) return;
     if (Math.abs(e.clientX - lp.startX) > 10 || Math.abs(e.clientY - lp.startY) > 10) {
@@ -244,17 +250,18 @@ export default function MobileCalendarView() {
             const numberLabel = isFirstOfMonth ? `${d.getMonth() + 1}月1日` : String(d.getDate());
 
             const cell = (
-              <button
+              <div
                 key={date}
                 data-date={date}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onPointerDown={(e) => onCellPointerDown(date, e)}
                 onPointerMove={onCellPointerMove}
                 onPointerUp={onCellPointerEnd}
                 onPointerCancel={onCellPointerEnd}
                 onClick={() => onCellClick(date)}
                 className={clsx(
-                  'relative flex min-h-[88px] flex-col gap-0.5 border-r border-b border-dotted border-slate-200 p-1 text-left dark:border-slate-700',
+                  'relative flex min-h-[88px] cursor-pointer flex-col gap-0.5 border-r border-b border-dotted border-slate-200 p-1 text-left dark:border-slate-700',
                   isToday && 'bg-yellow-100 dark:bg-yellow-900/30',
                   isVisibleMonth && !aboveSame && 'border-t-2 border-t-slate-700 dark:border-t-slate-200',
                   isVisibleMonth && !belowSame && 'border-b-2 border-b-slate-700 dark:border-b-slate-200',
@@ -287,23 +294,28 @@ export default function MobileCalendarView() {
                   }
                   const ev = it.item;
                   return (
-                    <div
+                    <button
                       key={`e-${ev.id}`}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditEvent(ev);
+                      }}
                       className={clsx(
-                        'truncate rounded-sm px-1 text-[10px] leading-snug',
+                        'truncate rounded-sm px-1 text-left text-[10px] leading-snug',
                         ev.tentative
                           ? CATEGORY_STYLES[ev.category].chipTentative
                           : CATEGORY_STYLES[ev.category].chip,
                       )}
                     >
                       {ev.title}
-                    </div>
+                    </button>
                   );
                 })}
                 {items.length > 3 && (
                   <div className="text-[9px] text-slate-400">+{items.length - 3}</div>
                 )}
-              </button>
+              </div>
             );
             return cell;
           })}
@@ -337,6 +349,27 @@ export default function MobileCalendarView() {
         open={addOpen !== null}
         date={addOpen ?? today}
         onClose={() => setAddOpen(null)}
+      />
+      <NewEventDialog
+        open={editEvent !== null}
+        event={editEvent ?? undefined}
+        onClose={() => setEditEvent(null)}
+        onSave={(data) => {
+          if (!editEvent) return;
+          updateEvent(editEvent.id, data);
+          setEditEvent(null);
+        }}
+        onDelete={() => {
+          if (!editEvent) return;
+          removeEvent(editEvent.id);
+          setEditEvent(null);
+        }}
+        onDeleteGroup={() => {
+          if (!editEvent) return;
+          const gid = editEvent.recurringGroupId;
+          if (gid) removeGroup(gid);
+          setEditEvent(null);
+        }}
       />
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
