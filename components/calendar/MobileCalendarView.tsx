@@ -9,7 +9,6 @@ import { CATEGORY_STYLES } from '@/lib/colors';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
 import { calendarTodosByDate, todoIcon } from '@/lib/todo-calendar';
 import QuickAddDialog from './QuickAddDialog';
-import SettingsDialog from '@/components/settings/SettingsDialog';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -31,7 +30,6 @@ export default function MobileCalendarView() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [visibleMonth, setVisibleMonth] = useState<string>(today.slice(0, 7));
   const [addOpen, setAddOpen] = useState<string | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const router = useRouter();
   const longPressRef = useRef<{
@@ -145,7 +143,10 @@ export default function MobileCalendarView() {
   const monthLabel = `${visYear}年${visMonth}月`;
 
   return (
-    <div className="flex h-[100dvh] flex-col">
+    <div
+      className="flex flex-col"
+      style={{ height: 'calc(100dvh - 60px - env(safe-area-inset-bottom))' }}
+    >
       {/* Day-of-week header */}
       <div className="grid grid-cols-7 border-b border-slate-200 bg-white text-center text-xs font-medium dark:border-slate-700 dark:bg-slate-900">
         {WEEKDAYS.map((w, i) => (
@@ -262,8 +263,8 @@ export default function MobileCalendarView() {
         <div className="h-32" />
       </div>
 
-      {/* Bottom toolbar */}
-      <div className="grid grid-cols-[1fr_2fr_1fr_1fr] items-center gap-1 border-t border-slate-200 bg-emerald-100 px-3 py-3 dark:border-slate-700 dark:bg-emerald-900/40">
+      {/* Sub-toolbar: jump-to-today + visible month + quick add */}
+      <div className="grid grid-cols-[1fr_2fr_1fr] items-center gap-1 border-t border-slate-200 bg-emerald-100 px-3 py-2 dark:border-slate-700 dark:bg-emerald-900/40">
         <button
           type="button"
           onClick={jumpToToday}
@@ -282,14 +283,6 @@ export default function MobileCalendarView() {
         >
           ＋
         </button>
-        <button
-          type="button"
-          onClick={() => setSettingsOpen(true)}
-          className="flex items-center justify-center rounded-md py-2 text-xl text-slate-800 dark:text-slate-100"
-          aria-label="設定"
-        >
-          ⚙️
-        </button>
       </div>
 
       <QuickAddDialog
@@ -297,7 +290,6 @@ export default function MobileCalendarView() {
         date={addOpen ?? today}
         onClose={() => setAddOpen(null)}
       />
-      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

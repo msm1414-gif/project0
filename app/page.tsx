@@ -9,6 +9,8 @@ import TodoSidebar from '@/components/todo/TodoSidebar';
 import BulkRegisterDialog from '@/components/bulk/BulkRegisterDialog';
 import SettingsDialog from '@/components/settings/SettingsDialog';
 import TimetableGridDialog from '@/components/timetable/TimetableGridDialog';
+import QuickAddDialog from '@/components/calendar/QuickAddDialog';
+import AddMenu from '@/components/timebox/AddMenu';
 import { useApp } from '@/lib/store';
 import { loadSettings, saveSettings } from '@/lib/settings';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
@@ -33,6 +35,7 @@ function HomeInner() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   useEffect(() => {
     if (!tokenFromUrl || !TOKEN_RE.test(tokenFromUrl)) return;
@@ -66,18 +69,21 @@ function HomeInner() {
         <h1 className="mr-auto text-xl font-semibold">
           {d.getFullYear()}年{d.getMonth() + 1}月{d.getDate()}日 ({weekday})
         </h1>
-        <button
-          type="button"
-          onClick={() => setDate(todayStr())}
-          className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
-        >
-          今日
-        </button>
-        <div className="flex gap-1">
+
+        {/* 日付ナビ */}
+        <div className="flex items-center gap-1 rounded border border-slate-300 bg-white px-1 py-0.5 text-sm dark:border-slate-600 dark:bg-slate-800">
+          <button
+            type="button"
+            onClick={() => setDate(todayStr())}
+            className="rounded px-2 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-700"
+          >
+            今日
+          </button>
+          <span className="h-4 w-px bg-slate-300 dark:bg-slate-600" />
           <button
             type="button"
             onClick={() => shift(-1)}
-            className="rounded border border-slate-300 px-2 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+            className="rounded px-2 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-700"
             aria-label="前日"
           >
             ←
@@ -85,54 +91,55 @@ function HomeInner() {
           <button
             type="button"
             onClick={() => shift(1)}
-            className="rounded border border-slate-300 px-2 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+            className="rounded px-2 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-700"
             aria-label="翌日"
           >
             →
           </button>
+          <span className="h-4 w-px bg-slate-300 dark:bg-slate-600" />
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => e.target.value && setDate(e.target.value)}
+            className="rounded border-0 bg-transparent px-1 py-0.5 text-sm focus:outline-none"
+          />
         </div>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => e.target.value && setDate(e.target.value)}
-          className="rounded border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800"
+
+        <span className="hidden h-6 w-px bg-slate-300 dark:bg-slate-600 sm:inline-block" />
+
+        {/* 追加メニュー */}
+        <AddMenu
+          onQuickAdd={() => setQuickAddOpen(true)}
+          onBulkRegister={() => setBulkOpen(true)}
+          onTimetable={() => setImportOpen(true)}
         />
-        <button
-          type="button"
-          onClick={() => setBulkOpen(true)}
-          className="rounded bg-slate-900 px-3 py-1 text-sm text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
-        >
-          + 一括登録
-        </button>
-        <button
-          type="button"
-          onClick={() => setImportOpen(true)}
-          className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
-          title="グリッドから時間割を一括登録"
-        >
-          🗓️ 時間割
-        </button>
-        <Link
-          href="/calendar"
-          className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
-        >
-          カレンダー
-        </Link>
-        <Link
-          href="/subjects"
-          className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
-        >
-          科目
-        </Link>
-        <button
-          type="button"
-          onClick={() => setSettingsOpen(true)}
-          className="rounded border border-slate-300 px-2 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
-          aria-label="設定"
-          title="設定"
-        >
-          ⚙️
-        </button>
+
+        <span className="hidden h-6 w-px bg-slate-300 dark:bg-slate-600 sm:inline-block" />
+
+        {/* ナビゲーション */}
+        <div className="flex items-center gap-1">
+          <Link
+            href="/calendar"
+            className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          >
+            カレンダー
+          </Link>
+          <Link
+            href="/subjects"
+            className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          >
+            科目
+          </Link>
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            className="rounded border border-slate-300 px-2 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+            aria-label="設定"
+            title="設定"
+          >
+            ⚙️
+          </button>
+        </div>
       </header>
 
       {dayTodos.length > 0 && (
@@ -168,6 +175,11 @@ function HomeInner() {
       <BulkRegisterDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <TimetableGridDialog open={importOpen} onClose={() => setImportOpen(false)} />
+      <QuickAddDialog
+        open={quickAddOpen}
+        date={selectedDate}
+        onClose={() => setQuickAddOpen(false)}
+      />
     </main>
   );
 }
