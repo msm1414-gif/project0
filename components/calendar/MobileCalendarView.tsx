@@ -10,6 +10,7 @@ import { CATEGORY_STYLES } from '@/lib/colors';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
 import { calendarTodosByDate, todoIcon } from '@/lib/todo-calendar';
 import QuickAddDialog from './QuickAddDialog';
+import RangeAddDialog from './RangeAddDialog';
 import NewEventDialog from '@/components/timebox/NewEventDialog';
 import SettingsDialog from '@/components/settings/SettingsDialog';
 import type { Event } from '@/lib/types';
@@ -41,6 +42,10 @@ export default function MobileCalendarView() {
   const [addOpen, setAddOpen] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editEvent, setEditEvent] = useState<Event | null>(null);
+  const [rangeState, setRangeState] = useState<
+    { kind: 'off' } | { kind: 'pick-start' } | { kind: 'pick-end'; start: string }
+  >({ kind: 'off' });
+  const [rangeDialog, setRangeDialog] = useState<{ start: string; end: string } | null>(null);
   const updateEvent = useApp((s) => s.updateEvent);
   const removeEvent = useApp((s) => s.removeEvent);
   const removeGroup = useApp((s) => s.removeGroup);
@@ -97,6 +102,16 @@ export default function MobileCalendarView() {
   function onCellClick(date: string) {
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
+      return;
+    }
+    if (rangeState.kind === 'pick-start') {
+      setRangeState({ kind: 'pick-end', start: date });
+      return;
+    }
+    if (rangeState.kind === 'pick-end') {
+      const [start, end] = [rangeState.start, date].sort();
+      setRangeDialog({ start, end });
+      setRangeState({ kind: 'off' });
       return;
     }
     setAddOpen(date);
@@ -263,6 +278,7 @@ export default function MobileCalendarView() {
                 className={clsx(
                   'relative flex min-h-[88px] cursor-pointer flex-col gap-0.5 border-r border-b border-dotted border-slate-200 p-1 text-left dark:border-slate-700',
                   isToday && 'bg-yellow-100 dark:bg-yellow-900/30',
+                  rangeState.kind === 'pick-end' && rangeState.start === date && 'bg-amber-200 dark:bg-amber-900/50',
                   isVisibleMonth && !aboveSame && 'border-t-2 border-t-slate-700 dark:border-t-slate-200',
                   isVisibleMonth && !belowSame && 'border-b-2 border-b-slate-700 dark:border-b-slate-200',
                   isVisibleMonth && (!leftSame || dow === 0) && 'border-l-2 border-l-slate-700 dark:border-l-slate-200',
@@ -323,8 +339,26 @@ export default function MobileCalendarView() {
         <div className="h-32" />
       </div>
 
-      {/* Sub-toolbar: jump-to-today + visible month + quick add */}
-      <div className="grid grid-cols-[1fr_2fr_1fr] items-center gap-1 border-t border-slate-200 bg-emerald-100 px-3 py-2 dark:border-slate-700 dark:bg-emerald-900/40">
+      {/* 範囲選択モード時のバナー */}
+      {rangeState.kind !== 'off' && (
+        <div className="flex items-center gap-2 border-t border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          <span className="flex-1">
+            {rangeState.kind === 'pick-start'
+              ? '↔ 範囲予定: 開始日のセルをタップしてください'
+              : `↔ 開始: ${rangeState.start} → 終了日のセルをタップ`}
+          </span>
+          <button
+            type="button"
+            onClick={() => setRangeState({ kind: 'off' })}
+            className="rounded border border-amber-400 px-2 py-0.5 text-[11px] hover:bg-amber-100 dark:hover:bg-amber-900"
+          >
+            キャンセル
+          </button>
+        </div>
+      )}
+
+      {/* Sub-toolbar: jump-to-today + visible month + quick add + range */}
+      <div className="grid grid-cols-[1fr_2fr_1fr_1fr] items-center gap-1 border-t border-slate-200 bg-emerald-100 px-3 py-2 dark:border-slate-700 dark:bg-emerald-900/40">
         <button
           type="button"
           onClick={jumpToToday}
@@ -339,9 +373,26 @@ export default function MobileCalendarView() {
           type="button"
           onClick={() => setAddOpen(today)}
           className="flex items-center justify-center rounded-md py-2 text-2xl font-bold text-slate-800 dark:text-slate-100"
-          aria-label="追加"
+          aria-label="単発追加"
+          title="単発追加"
         >
           ＋
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setRangeState((s) => (s.kind === 'off' ? { kind: 'pick-start' } : { kind: 'off' }))
+          }
+          className={clsx(
+            'flex items-center justify-center rounded-md py-2 text-lg font-bold',
+            rangeState.kind !== 'off'
+              ? 'bg-amber-500 text-white'
+              : 'text-slate-800 dark:text-slate-100',
+          )}
+          aria-label="範囲追加"
+          title="範囲予定 (合宿・旅行など)"
+        >
+          ↔
         </button>
       </div>
 
@@ -349,6 +400,12 @@ export default function MobileCalendarView() {
         open={addOpen !== null}
         date={addOpen ?? today}
         onClose={() => setAddOpen(null)}
+      />
+      <RangeAddDialog
+        open={rangeDialog !== null}
+        startDate={rangeDialog?.start ?? today}
+        endDate={rangeDialog?.end ?? today}
+        onClose={() => setRangeDialog(null)}
       />
       <NewEventDialog
         open={editEvent !== null}

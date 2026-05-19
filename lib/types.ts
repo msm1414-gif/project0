@@ -20,6 +20,7 @@ export interface Event {
   recurringGroupId?: string;
   timetableId?: string;
   tentative?: boolean;
+  allDay?: boolean;
   notes?: string;
   notionPageUrl?: string;
   notionPageId?: string;

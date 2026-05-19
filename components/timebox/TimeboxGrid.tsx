@@ -48,7 +48,10 @@ export default function TimeboxGrid({ date }: Props) {
   >(null);
 
   const dayEvents = useMemo(
-    () => events.filter((e) => e.date === date).sort((a, b) => a.startMinutes - b.startMinutes),
+    () =>
+      events
+        .filter((e) => e.date === date && !e.allDay)
+        .sort((a, b) => a.startMinutes - b.startMinutes),
     [events, date],
   );
 
