@@ -1,16 +1,23 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { addDays, addMonths, eachDayOfInterval, endOfWeek, startOfWeek } from 'date-fns';
+import Link from 'next/link';
 import { useApp } from '@/lib/store';
 import { CATEGORY_STYLES } from '@/lib/colors';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
 import { calendarTodosByDate, todoIcon } from '@/lib/todo-calendar';
 import QuickAddDialog from './QuickAddDialog';
+import SettingsDialog from '@/components/settings/SettingsDialog';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+
+function isMobileUA(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
 
 const RANGE_BEFORE_MONTHS = 6;
 const RANGE_AFTER_MONTHS = 12;
@@ -30,6 +37,7 @@ export default function MobileCalendarView() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [visibleMonth, setVisibleMonth] = useState<string>(today.slice(0, 7));
   const [addOpen, setAddOpen] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const router = useRouter();
   const longPressRef = useRef<{
@@ -142,11 +150,51 @@ export default function MobileCalendarView() {
   const [visYear, visMonth] = visibleMonth.split('-').map(Number);
   const monthLabel = `${visYear}年${visMonth}月`;
 
+  const isMobile = useSyncExternalStore(
+    (cb) => {
+      window.addEventListener('resize', cb);
+      return () => window.removeEventListener('resize', cb);
+    },
+    () => isMobileUA() || window.innerWidth < 640,
+    () => false,
+  );
+
   return (
     <div
       className="flex flex-col"
-      style={{ height: 'calc(100dvh - 60px - env(safe-area-inset-bottom))' }}
+      style={{
+        height: isMobile
+          ? 'calc(100dvh - 60px - env(safe-area-inset-bottom))'
+          : '100dvh',
+      }}
     >
+      {/* PC ヘッダー (モバイルは MobileShell の bottom tab で代替) */}
+      {!isMobile && (
+        <header className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-slate-900">
+          <h1 className="mr-auto text-lg font-semibold">📅 カレンダー</h1>
+          <Link
+            href="/"
+            className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          >
+            タイムボクシング
+          </Link>
+          <Link
+            href="/subjects"
+            className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          >
+            科目
+          </Link>
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            className="rounded border border-slate-300 px-2 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+            aria-label="設定"
+          >
+            ⚙️
+          </button>
+        </header>
+      )}
+
       {/* Day-of-week header */}
       <div className="grid grid-cols-7 border-b border-slate-200 bg-white text-center text-xs font-medium dark:border-slate-700 dark:bg-slate-900">
         {WEEKDAYS.map((w, i) => (
@@ -290,6 +338,7 @@ export default function MobileCalendarView() {
         date={addOpen ?? today}
         onClose={() => setAddOpen(null)}
       />
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
