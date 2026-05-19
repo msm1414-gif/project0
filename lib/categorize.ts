@@ -1,4 +1,5 @@
 import type { Category } from './types';
+import { loadSettings } from './settings';
 
 const KEYWORDS: { category: Category; words: string[] }[] = [
   { category: 'university', words: ['大学', '講義', '授業', 'ゼミ', '研究', 'レポート', '試験', '学校', 'class', 'lecture'] },
@@ -9,10 +10,22 @@ const KEYWORDS: { category: Category; words: string[] }[] = [
 
 export function inferCategory(title: string): Category {
   const lower = title.toLowerCase();
+  // ユーザー定義のサークルキーワードを最優先
+  if (typeof window !== 'undefined') {
+    const userKws = loadSettings().circleKeywords;
+    if (userKws.some((kw) => kw.trim() && lower.includes(kw.trim().toLowerCase()))) {
+      return 'circle';
+    }
+  }
   for (const { category, words } of KEYWORDS) {
     if (words.some((w) => lower.includes(w.toLowerCase()))) {
       return category;
     }
   }
   return 'other';
+}
+
+export function matchesCircleKeywords(title: string, keywords: string[]): boolean {
+  const lower = title.toLowerCase();
+  return keywords.some((kw) => kw.trim() && lower.includes(kw.trim().toLowerCase()));
 }

@@ -66,6 +66,7 @@ interface AppState {
   removeTimetable: (id: string) => void;
   applyTimetable: (timetable: Timetable, extraSourceIds?: Set<string>) => RegenerateResult;
   removeTimetableEvents: (timetableId: string) => number;
+  reclassifyCircle: (keywords: string[]) => number;
 }
 
 export const useApp = create<AppState>((set, get) => ({
@@ -239,6 +240,28 @@ export const useApp = create<AppState>((set, get) => ({
     set((s) => ({ timetables: s.timetables.filter((t) => t.id !== id) }));
     void db.deleteTimetable(id);
     schedulePush(get().events, get().todos, get().timetables);
+  },
+  reclassifyCircle: (keywords) => {
+    const lowerKws = keywords.map((k) => k.trim().toLowerCase()).filter(Boolean);
+    if (lowerKws.length === 0) return 0;
+    const updated: Event[] = [];
+    set((s) => ({
+      events: s.events.map((ev) => {
+        if (ev.category === 'circle') return ev;
+        const lower = ev.title.toLowerCase();
+        if (lowerKws.some((kw) => lower.includes(kw))) {
+          const next = { ...ev, category: 'circle' as const };
+          updated.push(next);
+          return next;
+        }
+        return ev;
+      }),
+    }));
+    if (updated.length > 0) {
+      void db.saveEvents(updated);
+      schedulePush(get().events, get().todos, get().timetables);
+    }
+    return updated.length;
   },
   removeTimetableEvents: (timetableId) => {
     const before = get().events.length;

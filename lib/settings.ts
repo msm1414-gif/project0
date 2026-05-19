@@ -8,6 +8,7 @@ export interface Settings {
   subjectPageIds: Record<string, string>;
   shareToken: string;
   anthropicApiKey: string;
+  circleKeywords: string[];
 }
 
 const DEFAULTS: Settings = {
@@ -16,6 +17,7 @@ const DEFAULTS: Settings = {
   subjectPageIds: {},
   shareToken: '',
   anthropicApiKey: '',
+  circleKeywords: [],
 };
 
 function normalizePageId(raw: string): string {
@@ -34,6 +36,7 @@ export function loadSettings(): Settings {
       ...DEFAULTS,
       ...parsed,
       subjectPageIds: { ...DEFAULTS.subjectPageIds, ...(parsed.subjectPageIds ?? {}) },
+      circleKeywords: Array.isArray(parsed.circleKeywords) ? parsed.circleKeywords : [],
     };
   } catch {
     return DEFAULTS;

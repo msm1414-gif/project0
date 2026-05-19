@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { generateShareToken, loadSettings, saveSettings } from '@/lib/settings';
 import { testNotion } from '@/lib/notion-client';
+import { matchesCircleKeywords } from '@/lib/categorize';
 import { icsUrlFor, shareUrlFor } from '@/lib/sync-client';
 import {
   getCurrentSubscription,
@@ -66,8 +67,11 @@ function Body({ onClose }: { onClose: () => void }) {
   const [pushMessage, setPushMessage] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
   const [tokenApplied, setTokenApplied] = useState<string | null>(null);
+  const [circleKeywordsText, setCircleKeywordsText] = useState(initial.circleKeywords.join('\n'));
+  const [circleApplied, setCircleApplied] = useState<string | null>(null);
   const ios = isIOS();
   const standalone = isStandalone();
+  const reclassifyCircle = useApp((s) => s.reclassifyCircle);
   const [test, setTest] = useState<TestState>({ status: 'idle' });
   const [sync, setSync] = useState<SyncState>({ status: 'idle' });
   const [pull, setPull] = useState<PullState>({ status: 'idle' });
@@ -215,12 +219,37 @@ function Body({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
+  function parseCircleKeywords(): string[] {
+    return circleKeywordsText
+      .split(/[\n,、,]+/)
+      .map((k) => k.trim())
+      .filter(Boolean);
+  }
+
+  const circlePreviewCount = (() => {
+    const kws = parseCircleKeywords();
+    if (kws.length === 0) return 0;
+    return events.filter((ev) => ev.category !== 'circle' && matchesCircleKeywords(ev.title, kws)).length;
+  })();
+
+  function onSaveCircleKeywords(apply: boolean) {
+    const kws = parseCircleKeywords();
+    saveSettings({ circleKeywords: kws });
+    if (apply) {
+      const changed = reclassifyCircle(kws);
+      setCircleApplied(`✓ キーワード ${kws.length} 件を保存、既存予定 ${changed} 件をサークルに変更`);
+    } else {
+      setCircleApplied(`✓ キーワード ${kws.length} 件を保存（既存予定は変更なし）`);
+    }
+  }
+
   function onSave() {
     saveSettings({
       notionToken: token.trim(),
       notionParentPageId: parentPageId.trim(),
       anthropicApiKey: anthropicApiKey.trim(),
       shareToken: shareToken.trim(),
+      circleKeywords: parseCircleKeywords(),
     });
     onClose();
   }
@@ -381,6 +410,53 @@ function Body({ onClose }: { onClose: () => void }) {
               ※ URL を知っている人は予定の閲覧・編集が可能です
             </span>
           </div>
+        </section>
+
+        <section className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-700">
+          <h3 className="text-sm font-semibold">
+            <span className="mr-1 inline-block h-2 w-2 rounded-full bg-red-500 align-middle" />
+            サークルキーワード
+          </h3>
+          <p className="mt-1 text-xs text-slate-500">
+            ここに登録したキーワードがタイトルに含まれる予定は、自動で「サークル」(赤) カテゴリに分類されます。
+            1 行 1 つ、もしくはカンマ区切りで入力。
+          </p>
+
+          <textarea
+            value={circleKeywordsText}
+            onChange={(e) => setCircleKeywordsText(e.target.value)}
+            rows={4}
+            placeholder={`例:\nESS\n茶道部\nボランティア`}
+            className="mt-2 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+          />
+
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] text-slate-500">
+              {circlePreviewCount > 0
+                ? `${circlePreviewCount} 件の予定が新たにサークル対象になります`
+                : '対象の予定なし'}
+            </span>
+            <div className="ml-auto flex gap-2">
+              <button
+                type="button"
+                onClick={() => onSaveCircleKeywords(false)}
+                className="rounded border border-slate-300 px-3 py-1 text-xs hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+              >
+                保存のみ
+              </button>
+              <button
+                type="button"
+                onClick={() => onSaveCircleKeywords(true)}
+                disabled={circlePreviewCount === 0}
+                className="rounded bg-red-600 px-3 py-1 text-xs text-white hover:bg-red-700 disabled:opacity-40"
+              >
+                保存 + 既存 {circlePreviewCount} 件に適用
+              </button>
+            </div>
+          </div>
+          {circleApplied && (
+            <div className="mt-2 text-[11px] text-emerald-600 dark:text-emerald-400">{circleApplied}</div>
+          )}
         </section>
 
         <section className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-700">
