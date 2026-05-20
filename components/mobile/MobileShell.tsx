@@ -49,7 +49,7 @@ function BottomTabBar() {
   const tabs = [
     { key: 'cal', icon: '📅', label: 'カレンダー', href: '/calendar', active: pathname === '/calendar' },
     { key: 'today', icon: '📆', label: '今日', href: `/?date=${today}`, active: pathname === '/' },
-    { key: 'subj', icon: '📚', label: '科目', href: '/subjects', active: pathname.startsWith('/subjects') },
+    { key: 'todo', icon: '✅', label: 'ToDo', href: '/todos', active: pathname.startsWith('/todos') },
   ] as const;
 
   return (
