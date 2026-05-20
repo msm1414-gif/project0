@@ -68,6 +68,7 @@ export default function MobileCalendarView() {
 
   function onCellPointerDown(date: string, e: React.PointerEvent<HTMLElement>) {
     clearLongPress();
+    if (rangeState.kind !== 'off') return; // 範囲選択モード中は長押し無効
     const startX = e.clientX;
     const startY = e.clientY;
     longPressRef.current = {
@@ -82,7 +83,7 @@ export default function MobileCalendarView() {
             navigator.vibrate?.(30);
           } catch {}
         }
-        router.push(`/?date=${date}`);
+        setAddOpen(date);
       }, 350),
     };
   }
@@ -114,7 +115,7 @@ export default function MobileCalendarView() {
       setRangeState({ kind: 'off' });
       return;
     }
-    setAddOpen(date);
+    router.push(`/?date=${date}`);
   }
 
   function scrollTo(date: string) {
