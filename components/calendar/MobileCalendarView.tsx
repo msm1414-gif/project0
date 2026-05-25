@@ -9,6 +9,7 @@ import { useApp } from '@/lib/store';
 import { CATEGORY_STYLES } from '@/lib/colors';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
 import { calendarTodosByDate, todoIcon } from '@/lib/todo-calendar';
+import { isJapaneseHoliday } from '@/lib/holidays';
 import QuickAddDialog from './QuickAddDialog';
 import RangeAddDialog from './RangeAddDialog';
 import NewEventDialog from '@/components/timebox/NewEventDialog';
@@ -243,6 +244,7 @@ export default function MobileCalendarView() {
             const dateMonth = date.slice(0, 7);
             const isToday = date === today;
             const isVisibleMonth = dateMonth === visibleMonth;
+            const isJpHoliday = isJapaneseHoliday(d);
 
             // Border edges for highlighting visible month boundary
             const aboveDate = formatDate(addDays(d, -7));
@@ -277,21 +279,25 @@ export default function MobileCalendarView() {
                 onPointerCancel={onCellPointerEnd}
                 onClick={() => onCellClick(date)}
                 className={clsx(
-                  'relative flex min-h-[88px] cursor-pointer flex-col gap-0.5 border-r border-b border-dotted border-slate-200 p-1 text-left dark:border-slate-700',
+                  'relative flex min-h-[88px] cursor-pointer flex-col gap-0.5 border-r border-b border-dotted p-1 text-left',
+                  isJpHoliday
+                    ? 'border-pink-300 dark:border-pink-700'
+                    : 'border-slate-200 dark:border-slate-700',
                   isToday && 'bg-yellow-100 dark:bg-yellow-900/30',
                   rangeState.kind === 'pick-end' && rangeState.start === date && 'bg-amber-200 dark:bg-amber-900/50',
-                  isVisibleMonth && !aboveSame && 'border-t-2 border-t-slate-700 dark:border-t-slate-200',
-                  isVisibleMonth && !belowSame && 'border-b-2 border-b-slate-700 dark:border-b-slate-200',
-                  isVisibleMonth && (!leftSame || dow === 0) && 'border-l-2 border-l-slate-700 dark:border-l-slate-200',
-                  isVisibleMonth && (!rightSame || dow === 6) && 'border-r-2 border-r-slate-700 dark:border-r-slate-200',
+                  isVisibleMonth && !aboveSame && (isJpHoliday ? 'border-t-2 border-t-pink-500 dark:border-t-pink-400' : 'border-t-2 border-t-slate-700 dark:border-t-slate-200'),
+                  isVisibleMonth && !belowSame && (isJpHoliday ? 'border-b-2 border-b-pink-500 dark:border-b-pink-400' : 'border-b-2 border-b-slate-700 dark:border-b-slate-200'),
+                  isVisibleMonth && (!leftSame || dow === 0) && (isJpHoliday ? 'border-l-2 border-l-pink-500 dark:border-l-pink-400' : 'border-l-2 border-l-slate-700 dark:border-l-slate-200'),
+                  isVisibleMonth && (!rightSame || dow === 6) && (isJpHoliday ? 'border-r-2 border-r-pink-500 dark:border-r-pink-400' : 'border-r-2 border-r-slate-700 dark:border-r-slate-200'),
                 )}
               >
                 <div
                   className={clsx(
                     'text-[11px] font-semibold',
-                    dow === 0 && 'text-red-600 dark:text-red-400',
-                    dow === 6 && 'text-blue-600 dark:text-blue-400',
-                    dow !== 0 && dow !== 6 && 'text-slate-800 dark:text-slate-100',
+                    isJpHoliday && 'text-red-600 dark:text-red-400',
+                    !isJpHoliday && dow === 0 && 'text-red-600 dark:text-red-400',
+                    !isJpHoliday && dow === 6 && 'text-blue-600 dark:text-blue-400',
+                    !isJpHoliday && dow !== 0 && dow !== 6 && 'text-slate-800 dark:text-slate-100',
                     !isVisibleMonth && 'opacity-60',
                   )}
                 >
