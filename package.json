@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
+    "@google/genai": "^1.52.0",
     "@holiday-jp/holiday_jp": "^2.5.1",
+    "@supabase/supabase-js": "^2.106.0",
     "@vercel/kv": "^3.0.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

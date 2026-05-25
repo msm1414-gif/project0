@@ -1,0 +1,52 @@
+import { NextResponse } from 'next/server';
+import { getRecentMessages, insertMessage, listUsers } from '@/lib/diary/db';
+import { generateOpeningMessage } from '@/lib/diary/conversation';
+import { pushText } from '@/lib/diary/line';
+
+// 現在の JST 時刻（0-23）。
+function jstHour(): number {
+  const d = new Date();
+  return (d.getUTCHours() + 9) % 24;
+}
+
+// 夜、Bot から会話の口火を切る（push 1通）。
+// Vercel Cron は1日1回固定時刻で起動し、その時刻に delivery_hour が一致する
+// ユーザーにだけ push する。delivery_hour を変える場合は vercel.json の schedule も合わせる。
+export async function GET(req: Request) {
+  const auth = req.headers.get('authorization');
+  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+  }
+
+  const hour = jstHour();
+  let pushed = 0;
+  let skipped = 0;
+  const errors: string[] = [];
+
+  try {
+    const users = await listUsers();
+    for (const user of users) {
+      if (user.deliveryHour !== hour) {
+        skipped++;
+        continue;
+      }
+      try {
+        const recent = await getRecentMessages(user.id, 40);
+        const opening = await generateOpeningMessage(user, recent);
+        // bot の口火は session コンテキストで保存 → 以降の返信がセッション扱いになる。
+        await insertMessage(user.id, 'bot', opening, 'session');
+        await pushText(user.lineUserId, opening);
+        pushed++;
+      } catch (err) {
+        errors.push(err instanceof Error ? err.message : String(err));
+      }
+    }
+  } catch (err) {
+    return NextResponse.json(
+      { ok: false, error: err instanceof Error ? err.message : String(err) },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({ ok: true, hour, pushed, skipped, errors });
+}
