@@ -1,6 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import {
+  PlusIcon,
+  PencilIcon,
+  RepeatIcon,
+  GridIcon,
+  ChevronDownIcon,
+} from '@/components/ui/Icon';
 
 interface Props {
   onQuickAdd: () => void;
@@ -30,47 +37,64 @@ export default function AddMenu({ onQuickAdd, onBulkRegister, onTimetable }: Pro
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="rounded bg-slate-900 px-3 py-1 text-sm text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+        className="flex items-center gap-1.5 rounded-full bg-[var(--fg)] px-3.5 py-1.5 text-xs font-medium text-[var(--bg)] hover:opacity-90"
       >
-        + 追加 ▾
+        <PlusIcon size={14} />
+        <span>追加</span>
+        <ChevronDownIcon size={12} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
-          <button
-            type="button"
+        <div className="absolute right-0 top-full z-30 mt-2 w-60 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-elev)] shadow-lg shadow-black/5">
+          <MenuItem
+            icon={<PencilIcon size={16} />}
+            title="新規予定"
+            sub="1 件をフォームで追加"
             onClick={() => pick(onQuickAdd)}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-700"
-          >
-            <span>📝</span>
-            <div>
-              <div>新規予定</div>
-              <div className="text-[10px] text-slate-500">1 件をフォームで追加</div>
-            </div>
-          </button>
-          <button
-            type="button"
+          />
+          <div className="h-px bg-[var(--border)]" />
+          <MenuItem
+            icon={<RepeatIcon size={16} />}
+            title="一括登録"
+            sub="期間 × 曜日で繰り返し"
             onClick={() => pick(onBulkRegister)}
-            className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-700"
-          >
-            <span>🔁</span>
-            <div>
-              <div>一括登録</div>
-              <div className="text-[10px] text-slate-500">期間 × 曜日で繰り返し</div>
-            </div>
-          </button>
-          <button
-            type="button"
+          />
+          <div className="h-px bg-[var(--border)]" />
+          <MenuItem
+            icon={<GridIcon size={16} />}
+            title="時間割"
+            sub="学期の授業をまとめて"
             onClick={() => pick(onTimetable)}
-            className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-700"
-          >
-            <span>🗓️</span>
-            <div>
-              <div>時間割</div>
-              <div className="text-[10px] text-slate-500">学期の授業をまとめて</div>
-            </div>
-          </button>
+          />
         </div>
       )}
     </div>
+  );
+}
+
+function MenuItem({
+  icon,
+  title,
+  sub,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  sub: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left hover:bg-[var(--bg-soft)]"
+    >
+      <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--bg-muted)] text-[var(--fg-muted)]">
+        {icon}
+      </span>
+      <span>
+        <span className="block text-sm font-medium text-[var(--fg)]">{title}</span>
+        <span className="block text-[11px] text-[var(--fg-muted)]">{sub}</span>
+      </span>
+    </button>
   );
 }

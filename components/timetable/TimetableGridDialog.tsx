@@ -198,13 +198,16 @@ function Body({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-2 backdrop-blur-sm sm:items-center sm:p-4"
+      onClick={onClose}
+    >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900"
+        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-t-3xl border border-[var(--border)] bg-[var(--bg-elev)] p-5 shadow-2xl shadow-black/10 sm:rounded-2xl"
       >
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold">🗓️ 時間割</h2>
+          <h2 className="text-lg font-semibold tracking-tight">時間割</h2>
           {existing ? (
             <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200">
               保存済み（{new Date(existing.updatedAt).toLocaleDateString('ja-JP')} 更新）

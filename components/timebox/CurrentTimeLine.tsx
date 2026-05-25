@@ -25,8 +25,8 @@ export default function CurrentTimeLine() {
       style={{ top: minutesToPx(minutes) }}
     >
       <div className="flex items-center">
-        <div className="h-2 w-2 -ml-1 rounded-full bg-red-500" />
-        <div className="h-px flex-1 bg-red-500" />
+        <div className="h-2.5 w-2.5 -ml-1.5 rounded-full bg-rose-500 ring-2 ring-[var(--bg-elev)]" />
+        <div className="h-[1.5px] flex-1 bg-rose-500" />
       </div>
     </div>
   );

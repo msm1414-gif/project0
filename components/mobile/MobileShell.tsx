@@ -6,13 +6,19 @@ import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import SettingsDialog from '@/components/settings/SettingsDialog';
 import { todayStr } from '@/lib/time';
+import {
+  CalendarIcon,
+  CalendarTodayIcon,
+  CheckSquareIcon,
+  SettingsIcon,
+} from '@/components/ui/Icon';
 
 function isMobileUA(): boolean {
   if (typeof navigator === 'undefined') return false;
   return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
-const BAR_HEIGHT_PX = 60;
+const BAR_HEIGHT_PX = 64;
 
 export default function MobileShell({ children }: { children: React.ReactNode }) {
   const isMobile = useSyncExternalStore(
@@ -47,15 +53,33 @@ function BottomTabBar() {
   const today = todayStr();
 
   const tabs = [
-    { key: 'cal', icon: '📅', label: 'カレンダー', href: '/calendar', active: pathname === '/calendar' },
-    { key: 'today', icon: '📆', label: '今日', href: `/?date=${today}`, active: pathname === '/' },
-    { key: 'todo', icon: '✅', label: 'ToDo', href: '/todos', active: pathname.startsWith('/todos') },
+    {
+      key: 'cal',
+      Icon: CalendarIcon,
+      label: 'カレンダー',
+      href: '/calendar',
+      active: pathname === '/calendar',
+    },
+    {
+      key: 'today',
+      Icon: CalendarTodayIcon,
+      label: '今日',
+      href: `/?date=${today}`,
+      active: pathname === '/',
+    },
+    {
+      key: 'todo',
+      Icon: CheckSquareIcon,
+      label: 'ToDo',
+      href: '/todos',
+      active: pathname.startsWith('/todos'),
+    },
   ] as const;
 
   return (
     <>
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-slate-200 bg-white shadow-[0_-2px_8px_rgba(0,0,0,0.04)] dark:border-slate-700 dark:bg-slate-900"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-[var(--border)] bg-[var(--bg-elev)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--bg-elev)]/80"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {tabs.map((t) => (
@@ -63,27 +87,57 @@ function BottomTabBar() {
             key={t.key}
             href={t.href}
             prefetch={false}
-            className={clsx(
-              'flex flex-col items-center justify-center gap-0.5 py-2 text-[10px]',
-              t.active
-                ? 'text-sky-600 dark:text-sky-400'
-                : 'text-slate-600 dark:text-slate-300',
-            )}
+            className="group flex items-center justify-center py-2 outline-none"
           >
-            <span className="text-lg leading-none">{t.icon}</span>
-            <span className={clsx(t.active && 'font-semibold')}>{t.label}</span>
+            <TabContent active={t.active} label={t.label}>
+              <t.Icon size={20} />
+            </TabContent>
           </Link>
         ))}
         <button
           type="button"
           onClick={() => setSettingsOpen(true)}
-          className="flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] text-slate-600 dark:text-slate-300"
+          className="group flex items-center justify-center py-2 outline-none"
         >
-          <span className="text-lg leading-none">⚙️</span>
-          <span>設定</span>
+          <TabContent active={false} label="設定">
+            <SettingsIcon size={20} />
+          </TabContent>
         </button>
       </nav>
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
+  );
+}
+
+function TabContent({
+  active,
+  label,
+  children,
+}: {
+  active: boolean;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={clsx(
+        'flex flex-col items-center gap-0.5 rounded-full px-3 py-1 transition-colors',
+        active
+          ? 'text-[var(--fg)]'
+          : 'text-[var(--fg-muted)] group-hover:text-[var(--fg)]',
+      )}
+    >
+      <span
+        className={clsx(
+          'flex h-7 w-12 items-center justify-center rounded-full transition-all',
+          active && 'bg-[var(--bg-muted)]',
+        )}
+      >
+        {children}
+      </span>
+      <span className={clsx('text-[10px] leading-none', active && 'font-medium')}>
+        {label}
+      </span>
+    </div>
   );
 }

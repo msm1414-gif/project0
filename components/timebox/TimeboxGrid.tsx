@@ -182,11 +182,11 @@ export default function TimeboxGrid({ date }: Props) {
 
   return (
     <div className="relative flex">
-      <div className="w-[60px] shrink-0 select-none text-right text-[11px] font-medium text-slate-500 dark:text-slate-400">
+      <div className="w-[60px] shrink-0 select-none text-right text-[11px] font-medium text-[var(--fg-subtle)]">
         {Array.from({ length: 24 }, (_, h) => (
           <div key={h} style={{ height: PX_PER_HOUR }} className="relative pr-2">
             {h === 0 ? null : (
-              <span className="absolute right-2 -top-2 bg-white px-1 dark:bg-slate-900">
+              <span className="tabular absolute right-2 -top-2 bg-[var(--bg-elev)] px-1">
                 {formatMinutes(h * 60)}
               </span>
             )}
@@ -195,13 +195,13 @@ export default function TimeboxGrid({ date }: Props) {
       </div>
       <div
         ref={gridRef}
-        className="relative flex-1 select-none touch-pan-y border-l border-slate-300 dark:border-slate-600"
+        className="relative flex-1 select-none touch-pan-y border-l border-[var(--border)]"
         style={{
           height: GRID_HEIGHT,
           backgroundImage: [
-            `repeating-linear-gradient(to bottom, rgba(148,163,184,0.20) 0 1px, transparent 1px ${fivePx}px)`,
-            `repeating-linear-gradient(to bottom, rgba(148,163,184,0.45) 0 1px, transparent 1px ${halfPx}px)`,
-            `repeating-linear-gradient(to bottom, rgba(100,116,139,0.65) 0 1px, transparent 1px ${hourPx}px)`,
+            `repeating-linear-gradient(to bottom, rgba(148,163,184,0.12) 0 1px, transparent 1px ${fivePx}px)`,
+            `repeating-linear-gradient(to bottom, rgba(148,163,184,0.28) 0 1px, transparent 1px ${halfPx}px)`,
+            `repeating-linear-gradient(to bottom, rgba(100,116,139,0.45) 0 1px, transparent 1px ${hourPx}px)`,
           ].join(', '),
         }}
         onPointerDown={onGridPointerDown}
@@ -212,13 +212,13 @@ export default function TimeboxGrid({ date }: Props) {
 
         {selection && (
           <div
-            className="pointer-events-none absolute left-1 right-1 rounded-md border-2 border-dashed border-sky-400 bg-sky-100/60 dark:bg-sky-900/40"
+            className="pointer-events-none absolute left-1.5 right-1.5 rounded-xl border-2 border-dashed border-sky-400 bg-sky-100/50 dark:bg-sky-500/20"
             style={{
               top: minutesToPx(selection.startMinutes),
               height: Math.max(minutesToPx(selection.endMinutes - selection.startMinutes), 12),
             }}
           >
-            <div className="px-2 py-1 text-xs text-sky-800 dark:text-sky-200">
+            <div className="tabular px-2 py-1 text-xs font-medium text-sky-700 dark:text-sky-200">
               {formatMinutes(selection.startMinutes)} – {formatMinutes(selection.endMinutes)}
             </div>
           </div>

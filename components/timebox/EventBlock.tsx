@@ -179,8 +179,8 @@ export default function EventBlock({ event, onChange, onClick }: Props) {
     <div
       ref={ref}
       className={clsx(
-        'absolute left-1 right-1 rounded-md shadow-sm cursor-grab active:cursor-grabbing select-none overflow-hidden touch-pan-y',
-        preview && 'ring-2 ring-sky-400',
+        'absolute left-1.5 right-1.5 rounded-lg cursor-grab select-none overflow-hidden touch-pan-y transition-shadow active:cursor-grabbing',
+        preview ? 'shadow-md ring-2 ring-sky-400/70' : 'shadow-sm hover:shadow-md',
         event.tentative ? style.blockTentative : style.block,
       )}
       style={{
@@ -197,9 +197,9 @@ export default function EventBlock({ event, onChange, onClick }: Props) {
         onPointerDown={(e) => beginDrag('resize-top', e)}
       />
       <div className={clsx('px-2 py-1 text-xs leading-tight', compact && 'py-0.5')}>
-        <div className="font-medium truncate">{event.title || '(無題)'}</div>
+        <div className="truncate font-medium">{event.title || '(無題)'}</div>
         {!compact && (
-          <div className="text-[11px] opacity-75">
+          <div className="tabular text-[11px] opacity-75">
             {formatMinutes(view.start)} – {formatMinutes(view.end)}
           </div>
         )}

@@ -10,6 +10,13 @@ import { DAY_MINUTES, formatMinutes, timeOptions } from '@/lib/time';
 import { isNotionConfigured, loadSettings } from '@/lib/settings';
 import { createNotionPage, ensureSubjectPage, heading2, paragraph } from '@/lib/notion-client';
 import { useApp } from '@/lib/store';
+import {
+  ExternalLinkIcon,
+  FileTextIcon,
+  SettingsIcon,
+  SparklesIcon,
+  TrashIcon,
+} from '@/components/ui/Icon';
 
 type Draft = {
   title: string;
@@ -39,7 +46,14 @@ interface Props {
   onClose: () => void;
 }
 
-function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }: Omit<Props, 'open'>) {
+function DialogBody({
+  event,
+  initial,
+  onSave,
+  onDelete,
+  onDeleteGroup,
+  onClose,
+}: Omit<Props, 'open'>) {
   const [draft, setDraft] = useState<Draft>(() => {
     if (event) {
       return {
@@ -69,7 +83,8 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
   const [notionError, setNotionError] = useState<string | null>(null);
 
   const times = timeOptions();
-  const resolvedCategory: Category = draft.category === 'auto' ? inferCategory(draft.title) : draft.category;
+  const resolvedCategory: Category =
+    draft.category === 'auto' ? inferCategory(draft.title) : draft.category;
   const notionConfigured = isNotionConfigured(loadSettings());
 
   function submit(e: React.FormEvent) {
@@ -109,45 +124,52 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
   const showNotionSection = event && resolvedCategory === 'university';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-2 backdrop-blur-sm sm:items-center sm:p-4"
+      onClick={onClose}
+    >
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
-        className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900"
+        className="w-full max-w-md rounded-t-3xl border border-[var(--border)] bg-[var(--bg-elev)] p-5 shadow-2xl shadow-black/10 sm:rounded-2xl"
       >
-        <h2 className="text-lg font-semibold">{event ? '予定を編集' : '新しい予定'}</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {event ? '予定を編集' : '新しい予定'}
+        </h2>
 
-        <label className="mt-4 block text-sm">
-          <span className="text-slate-600 dark:text-slate-300">タイトル</span>
+        <label className="mt-5 block">
+          <span className="text-xs font-medium text-[var(--fg-muted)]">タイトル</span>
           <input
             autoFocus
             type="text"
             value={draft.title}
             onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
             placeholder="例: 線形代数の講義"
-            className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-base placeholder:text-[var(--fg-subtle)] focus:border-[var(--border-strong)] focus:outline-none"
           />
         </label>
 
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <label className="block text-sm">
-            <span className="text-slate-600 dark:text-slate-300">開始</span>
+          <label className="block">
+            <span className="text-xs font-medium text-[var(--fg-muted)]">開始</span>
             <select
               value={draft.startMinutes}
               onChange={(e) => setDraft((d) => ({ ...d, startMinutes: Number(e.target.value) }))}
-              className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+              className="tabular mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm focus:border-[var(--border-strong)] focus:outline-none"
             >
               {times.slice(0, -1).map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
               ))}
             </select>
           </label>
-          <label className="block text-sm">
-            <span className="text-slate-600 dark:text-slate-300">終了</span>
+          <label className="block">
+            <span className="text-xs font-medium text-[var(--fg-muted)]">終了</span>
             <select
               value={draft.endMinutes}
               onChange={(e) => setDraft((d) => ({ ...d, endMinutes: Number(e.target.value) }))}
-              className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+              className="tabular mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm focus:border-[var(--border-strong)] focus:outline-none"
             >
               {times.slice(1).map((t) => (
                 <option key={t.value} value={t.value}>
@@ -158,19 +180,20 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
           </label>
         </div>
 
-        <div className="mt-3">
-          <div className="text-sm text-slate-600 dark:text-slate-300">カテゴリ</div>
-          <div className="mt-1 flex flex-wrap gap-2">
+        <div className="mt-4">
+          <div className="text-xs font-medium text-[var(--fg-muted)]">カテゴリ</div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
             <button
               type="button"
               onClick={() => setDraft((d) => ({ ...d, category: 'auto' }))}
               className={clsx(
-                'rounded-full px-3 py-1 text-xs border',
+                'flex items-center gap-1 rounded-full px-3 py-1 text-xs ring-1 ring-inset',
                 draft.category === 'auto'
-                  ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
-                  : 'border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-300',
+                  ? 'bg-[var(--fg)] text-[var(--bg)] ring-[var(--fg)]'
+                  : 'text-[var(--fg-muted)] ring-[var(--border)] hover:ring-[var(--border-strong)]',
               )}
             >
+              <SparklesIcon size={11} />
               自動 ({CATEGORY_LABELS[inferCategory(draft.title)]})
             </button>
             {CATEGORIES.map((cat) => (
@@ -179,10 +202,10 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
                 type="button"
                 onClick={() => setDraft((d) => ({ ...d, category: cat }))}
                 className={clsx(
-                  'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs border',
+                  'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs ring-1 ring-inset',
                   draft.category === cat
                     ? CATEGORY_STYLES[cat].chip
-                    : 'border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-300',
+                    : 'text-[var(--fg-muted)] ring-[var(--border)] hover:ring-[var(--border-strong)]',
                 )}
               >
                 <span className={clsx('h-2 w-2 rounded-full', CATEGORY_STYLES[cat].swatch)} />
@@ -192,52 +215,57 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
           </div>
         </div>
 
-        <label className="mt-3 block text-sm">
-          <span className="text-slate-600 dark:text-slate-300">メモ</span>
+        <label className="mt-4 block">
+          <span className="text-xs font-medium text-[var(--fg-muted)]">メモ</span>
           <textarea
             value={draft.notes}
             onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
             rows={3}
             placeholder="簡単なメモ（詳細な講義ノートは Notion 側に）"
-            className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm placeholder:text-[var(--fg-subtle)] focus:border-[var(--border-strong)] focus:outline-none"
           />
         </label>
 
-        <div className="mt-3 flex items-center justify-between rounded border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800">
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-soft)] px-3 py-2.5">
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={draft.tentative}
               onChange={(e) => setDraft((d) => ({ ...d, tentative: e.target.checked }))}
-              className="h-4 w-4 accent-slate-700"
+              className="h-4 w-4 accent-[var(--fg)]"
             />
-            <span className="text-slate-700 dark:text-slate-200">
-              仮置き <span className="text-slate-400">（破線・薄色で表示）</span>
+            <span className="text-[var(--fg)]">
+              仮置き
+              <span className="text-[var(--fg-subtle)]"> ・ 破線・薄色で表示</span>
             </span>
           </label>
           {draft.tentative && (
             <button
               type="button"
               onClick={() => setDraft((d) => ({ ...d, tentative: false }))}
-              className="rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+              className="rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-emerald-600"
             >
-              ✓ 本登録に変更
+              ✓ 本登録
             </button>
           )}
         </div>
 
         {showNotionSection && (
-          <div className="mt-3 rounded border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
-            <div className="text-sm font-medium text-slate-700 dark:text-slate-200">Notion 講義ノート</div>
+          <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-soft)] p-3">
+            <div className="flex items-center gap-1.5 text-sm font-medium">
+              <FileTextIcon size={14} />
+              Notion 講義ノート
+            </div>
             {notionUrl ? (
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-2">
                 <a
                   href={notionUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-sm text-sky-600 underline hover:text-sky-700 dark:text-sky-400"
+                  className="inline-flex items-center gap-1.5 text-sm text-sky-600 hover:text-sky-700 dark:text-sky-400"
                 >
-                  📝 Notion ページを開く
+                  Notion ページを開く
+                  <ExternalLinkIcon size={12} />
                 </a>
               </div>
             ) : notionConfigured ? (
@@ -246,28 +274,33 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
                   type="button"
                   onClick={createNotion}
                   disabled={notionBusy}
-                  className="rounded border border-slate-300 bg-white px-3 py-1 text-xs hover:bg-slate-100 disabled:opacity-40 dark:border-slate-600 dark:bg-slate-900 dark:hover:bg-slate-700"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs hover:border-[var(--border-strong)] disabled:opacity-40"
                 >
-                  {notionBusy ? '作成中...' : '📝 Notion ノートを作成'}
+                  <FileTextIcon size={12} />
+                  {notionBusy ? '作成中…' : 'Notion ノートを作成'}
                 </button>
-                {notionError && <div className="mt-2 text-xs text-red-600">{notionError}</div>}
+                {notionError && (
+                  <div className="mt-2 text-xs text-rose-500">{notionError}</div>
+                )}
               </div>
             ) : (
-              <div className="mt-1 text-xs text-amber-600">
-                ⚙️ 設定で Notion 連携を済ませると、ここから講義ノートを自動作成できます。
+              <div className="mt-1 inline-flex items-center gap-1 text-xs text-amber-600">
+                <SettingsIcon size={11} />
+                設定で Notion 連携を済ませると、ここから講義ノートを自動作成できます。
               </div>
             )}
           </div>
         )}
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
             {event && onDelete && (
               <button
                 type="button"
                 onClick={onDelete}
-                className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                className="inline-flex items-center gap-1 rounded-lg border border-rose-300/70 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:hover:bg-rose-500/10"
               >
+                <TrashIcon size={13} />
                 削除
               </button>
             )}
@@ -275,7 +308,7 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
               <button
                 type="button"
                 onClick={onDeleteGroup}
-                className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                className="rounded-lg border border-rose-300/70 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:hover:bg-rose-500/10"
               >
                 繰り返し全削除
               </button>
@@ -285,13 +318,13 @@ function DialogBody({ event, initial, onSave, onDelete, onDeleteGroup, onClose }
             <button
               type="button"
               onClick={onClose}
-              className="rounded border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600"
+              className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
             >
               キャンセル
             </button>
             <button
               type="submit"
-              className="rounded bg-slate-900 px-3 py-1.5 text-sm text-white dark:bg-white dark:text-slate-900"
+              className="rounded-lg bg-[var(--fg)] px-4 py-2 text-sm font-medium text-[var(--bg)] hover:opacity-90"
             >
               保存
             </button>

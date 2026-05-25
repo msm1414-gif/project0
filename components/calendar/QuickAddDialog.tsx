@@ -7,6 +7,7 @@ import { CATEGORIES, CATEGORY_LABELS, type Category } from '@/lib/types';
 import { CATEGORY_STYLES } from '@/lib/colors';
 import { inferCategory } from '@/lib/categorize';
 import { DAY_MINUTES, formatMinutes, parseDate, timeOptions } from '@/lib/time';
+import { SparklesIcon } from '@/components/ui/Icon';
 
 interface Props {
   open: boolean;
@@ -68,35 +69,40 @@ function Body({
   const times = timeOptions();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-2 sm:p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-2 backdrop-blur-sm sm:items-center sm:p-4"
+      onClick={onClose}
+    >
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
-        className="w-full max-w-md rounded-t-2xl sm:rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900"
+        className="w-full max-w-md rounded-t-3xl border border-[var(--border)] bg-[var(--bg-elev)] p-5 shadow-2xl shadow-black/10 sm:rounded-2xl"
       >
-        <h2 className="text-lg font-semibold">
-          {d.getMonth() + 1}/{d.getDate()} ({weekday}) に追加
+        <h2 className="tabular text-lg font-semibold tracking-tight">
+          {d.getFullYear()}.{String(d.getMonth() + 1).padStart(2, '0')}.
+          {String(d.getDate()).padStart(2, '0')}
+          <span className="ml-2 text-sm font-normal text-[var(--fg-muted)]">({weekday}) に追加</span>
         </h2>
 
-        <label className="mt-4 block text-sm">
-          <span className="text-slate-600 dark:text-slate-300">タイトル</span>
+        <label className="mt-5 block">
+          <span className="text-xs font-medium text-[var(--fg-muted)]">タイトル</span>
           <input
             autoFocus
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="例: 友達とランチ"
-            className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-2 text-base dark:border-slate-700 dark:bg-slate-800"
+            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-base placeholder:text-[var(--fg-subtle)] focus:border-[var(--border-strong)] focus:outline-none"
           />
         </label>
 
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <label className="block text-sm">
-            <span className="text-slate-600 dark:text-slate-300">開始</span>
+          <label className="block">
+            <span className="text-xs font-medium text-[var(--fg-muted)]">開始</span>
             <select
               value={startMin}
               onChange={(e) => setStartMin(Number(e.target.value))}
-              className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-2 text-base dark:border-slate-700 dark:bg-slate-800"
+              className="tabular mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-base focus:border-[var(--border-strong)] focus:outline-none"
             >
               {times.slice(0, -1).map((t) => (
                 <option key={t.value} value={t.value}>
@@ -105,12 +111,12 @@ function Body({
               ))}
             </select>
           </label>
-          <label className="block text-sm">
-            <span className="text-slate-600 dark:text-slate-300">終了</span>
+          <label className="block">
+            <span className="text-xs font-medium text-[var(--fg-muted)]">終了</span>
             <select
               value={endMin}
               onChange={(e) => setEndMin(Number(e.target.value))}
-              className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-2 text-base dark:border-slate-700 dark:bg-slate-800"
+              className="tabular mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-base focus:border-[var(--border-strong)] focus:outline-none"
             >
               {times.slice(1).map((t) => (
                 <option key={t.value} value={t.value}>
@@ -121,19 +127,20 @@ function Body({
           </label>
         </div>
 
-        <div className="mt-3">
-          <div className="text-sm text-slate-600 dark:text-slate-300">カテゴリ</div>
-          <div className="mt-1 flex flex-wrap gap-2">
+        <div className="mt-4">
+          <div className="text-xs font-medium text-[var(--fg-muted)]">カテゴリ</div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
             <button
               type="button"
               onClick={() => setCategory('auto')}
               className={clsx(
-                'rounded-full px-3 py-1 text-xs border',
+                'flex items-center gap-1 rounded-full px-3 py-1 text-xs ring-1 ring-inset',
                 category === 'auto'
-                  ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
-                  : 'border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-300',
+                  ? 'bg-[var(--fg)] text-[var(--bg)] ring-[var(--fg)]'
+                  : 'text-[var(--fg-muted)] ring-[var(--border)] hover:ring-[var(--border-strong)]',
               )}
             >
+              <SparklesIcon size={11} />
               自動 ({CATEGORY_LABELS[inferCategory(title)]})
             </button>
             {CATEGORIES.map((cat) => (
@@ -142,10 +149,10 @@ function Body({
                 type="button"
                 onClick={() => setCategory(cat)}
                 className={clsx(
-                  'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs border',
+                  'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs ring-1 ring-inset',
                   category === cat
                     ? CATEGORY_STYLES[cat].chip
-                    : 'border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-300',
+                    : 'text-[var(--fg-muted)] ring-[var(--border)] hover:ring-[var(--border-strong)]',
                 )}
               >
                 <span className={clsx('h-2 w-2 rounded-full', CATEGORY_STYLES[cat].swatch)} />
@@ -155,29 +162,29 @@ function Body({
           </div>
         </div>
 
-        <label className="mt-4 flex items-start gap-2 text-sm">
+        <label className="mt-5 flex items-start gap-2 text-sm">
           <input
             type="checkbox"
             checked={tentative}
             onChange={(e) => setTentative(e.target.checked)}
-            className="mt-0.5 h-4 w-4 accent-slate-700"
+            className="mt-0.5 h-4 w-4 accent-[var(--fg)]"
           />
-          <span className="text-slate-600 dark:text-slate-300">
+          <span className="text-[var(--fg-muted)]">
             仮置きとして追加（破線・薄色で表示、後で確定可能）
           </span>
         </label>
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="mt-6 flex justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600"
+            className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
           >
             キャンセル
           </button>
           <button
             type="submit"
-            className="rounded bg-slate-900 px-3 py-1.5 text-sm text-white dark:bg-white dark:text-slate-900"
+            className="rounded-lg bg-[var(--fg)] px-4 py-2 text-sm font-medium text-[var(--bg)] hover:opacity-90"
           >
             追加
           </button>

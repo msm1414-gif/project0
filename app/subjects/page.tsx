@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/lib/store';
 import { CATEGORY_STYLES } from '@/lib/colors';
+import { CalendarTodayIcon, CalendarIcon, FileTextIcon } from '@/components/ui/Icon';
 
 export default function SubjectsPage() {
   const hydrate = useApp((s) => s.hydrate);
@@ -15,11 +16,15 @@ export default function SubjectsPage() {
   }, [hydrate]);
 
   const subjects = useMemo(() => {
-    const map = new Map<string, { count: number; next?: string; last?: string; notionCount: number }>();
+    const map = new Map<
+      string,
+      { count: number; next?: string; last?: string; notionCount: number }
+    >();
     const todayIso = new Date().toISOString().slice(0, 10);
     for (const ev of events) {
       if (ev.category !== 'university') continue;
-      const entry = map.get(ev.title) ?? { count: 0, next: undefined, last: undefined, notionCount: 0 };
+      const entry =
+        map.get(ev.title) ?? { count: 0, next: undefined, last: undefined, notionCount: 0 };
       entry.count++;
       if (ev.notionPageUrl) entry.notionCount++;
       if (ev.date >= todayIso && (!entry.next || ev.date < entry.next)) entry.next = ev.date;
@@ -34,28 +39,31 @@ export default function SubjectsPage() {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-4 lg:p-6">
       <header className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-auto text-xl font-semibold">科目一覧</h1>
+        <h1 className="mr-auto text-xl font-semibold tracking-tight">科目一覧</h1>
         <Link
           href="/"
-          className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
         >
-          タイムボクシング
+          <CalendarTodayIcon size={14} />
+          今日
         </Link>
         <Link
           href="/calendar"
-          className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
         >
+          <CalendarIcon size={14} />
           カレンダー
         </Link>
       </header>
 
       {!hydrated ? (
-        <div className="rounded border border-dashed border-slate-300 p-8 text-center text-slate-500 dark:border-slate-700">
+        <div className="rounded-2xl border border-dashed border-[var(--border)] p-10 text-center text-sm text-[var(--fg-muted)]">
           読み込み中...
         </div>
       ) : subjects.length === 0 ? (
-        <div className="rounded border border-dashed border-slate-300 p-8 text-center text-slate-500 dark:border-slate-700">
-          大学カテゴリの予定がまだありません。一括登録で時間割を入れてみてください。
+        <div className="rounded-2xl border border-dashed border-[var(--border)] p-10 text-center text-sm text-[var(--fg-muted)]">
+          大学カテゴリの予定がまだありません。<br />
+          一括登録で時間割を入れてみてください。
         </div>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -63,21 +71,24 @@ export default function SubjectsPage() {
             <li key={s.title}>
               <Link
                 href={`/subjects/${encodeURIComponent(s.title)}`}
-                className="flex h-full flex-col rounded-lg border border-slate-200 bg-white p-4 transition hover:border-slate-400 hover:shadow dark:border-slate-700 dark:bg-slate-900"
+                className="group flex h-full flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-elev)] p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--border-strong)] hover:shadow-md"
               >
                 <div className="flex items-center gap-2">
-                  <span className={`h-3 w-3 rounded-full ${CATEGORY_STYLES.university.swatch}`} />
-                  <span className="flex-1 truncate font-semibold">{s.title}</span>
+                  <span className={`h-2.5 w-2.5 rounded-full ${CATEGORY_STYLES.university.swatch}`} />
+                  <span className="flex-1 truncate font-semibold tracking-tight">{s.title}</span>
                 </div>
-                <dl className="mt-2 grid grid-cols-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+                <dl className="tabular mt-3 grid grid-cols-2 gap-y-1.5 text-xs text-[var(--fg-muted)]">
                   <dt>講義数</dt>
-                  <dd className="text-right">{s.count}</dd>
+                  <dd className="text-right text-[var(--fg)]">{s.count}</dd>
                   <dt>次回</dt>
-                  <dd className="text-right">{s.next ?? '—'}</dd>
+                  <dd className="text-right text-[var(--fg)]">{s.next ?? '—'}</dd>
                   <dt>最終</dt>
-                  <dd className="text-right">{s.last ?? '—'}</dd>
-                  <dt>Notion</dt>
-                  <dd className="text-right">
+                  <dd className="text-right text-[var(--fg)]">{s.last ?? '—'}</dd>
+                  <dt className="flex items-center gap-1">
+                    <FileTextIcon size={11} />
+                    Notion
+                  </dt>
+                  <dd className="text-right text-[var(--fg)]">
                     {s.notionCount}/{s.count}
                   </dd>
                 </dl>

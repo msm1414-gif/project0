@@ -15,6 +15,13 @@ import { useApp } from '@/lib/store';
 import { loadSettings, saveSettings } from '@/lib/settings';
 import { formatDate, parseDate, todayStr } from '@/lib/time';
 import { calendarTodosByDate, todoIcon } from '@/lib/todo-calendar';
+import {
+  CalendarIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  SettingsIcon,
+  BookOpenIcon,
+} from '@/components/ui/Icon';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TOKEN_RE = /^[A-Za-z0-9_-]{16,128}$/;
@@ -61,51 +68,70 @@ function HomeInner() {
   }
 
   const d = parseDate(selectedDate);
-  const weekday = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+  const dow = d.getDay();
+  const weekday = ['日', '月', '火', '水', '木', '金', '土'][dow];
+  const isToday = selectedDate === todayStr();
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4 lg:p-6">
-      <header className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-auto text-xl font-semibold">
-          {d.getFullYear()}年{d.getMonth() + 1}月{d.getDate()}日 ({weekday})
-        </h1>
+      <header className="flex flex-wrap items-center gap-3">
+        <div className="mr-auto flex items-baseline gap-3">
+          <h1 className="tabular text-xl font-semibold tracking-tight">
+            {d.getFullYear()}.{String(d.getMonth() + 1).padStart(2, '0')}.
+            {String(d.getDate()).padStart(2, '0')}
+          </h1>
+          <span
+            className={
+              dow === 0
+                ? 'text-sm font-medium text-rose-500'
+                : dow === 6
+                  ? 'text-sm font-medium text-sky-500'
+                  : 'text-sm font-medium text-[var(--fg-muted)]'
+            }
+          >
+            {weekday}曜日
+          </span>
+          {isToday && (
+            <span className="rounded-full bg-[var(--fg)] px-2 py-0.5 text-[10px] font-medium text-[var(--bg)]">
+              TODAY
+            </span>
+          )}
+        </div>
 
         {/* 日付ナビ */}
-        <div className="flex items-center gap-1 rounded border border-slate-300 bg-white px-1 py-0.5 text-sm dark:border-slate-600 dark:bg-slate-800">
+        <div className="flex items-center gap-0.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] p-0.5 text-sm">
           <button
             type="button"
             onClick={() => setDate(todayStr())}
-            className="rounded px-2 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-700"
+            className="rounded-full px-3 py-1 text-xs font-medium text-[var(--fg-muted)] hover:bg-[var(--bg-soft)] hover:text-[var(--fg)]"
           >
             今日
           </button>
-          <span className="h-4 w-px bg-slate-300 dark:bg-slate-600" />
+          <span className="h-4 w-px bg-[var(--border)]" />
           <button
             type="button"
             onClick={() => shift(-1)}
-            className="rounded px-2 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-700"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--fg-muted)] hover:bg-[var(--bg-soft)] hover:text-[var(--fg)]"
             aria-label="前日"
           >
-            ←
+            <ChevronLeftIcon size={16} />
           </button>
           <button
             type="button"
             onClick={() => shift(1)}
-            className="rounded px-2 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-700"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--fg-muted)] hover:bg-[var(--bg-soft)] hover:text-[var(--fg)]"
             aria-label="翌日"
           >
-            →
+            <ChevronRightIcon size={16} />
           </button>
-          <span className="h-4 w-px bg-slate-300 dark:bg-slate-600" />
+          <span className="h-4 w-px bg-[var(--border)]" />
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => e.target.value && setDate(e.target.value)}
-            className="rounded border-0 bg-transparent px-1 py-0.5 text-sm focus:outline-none"
+            className="tabular w-32 rounded-full border-0 bg-transparent px-2 py-0.5 text-xs focus:outline-none"
           />
         </div>
-
-        <span className="hidden h-6 w-px bg-slate-300 dark:bg-slate-600 sm:inline-block" />
 
         {/* 追加メニュー */}
         <AddMenu
@@ -114,42 +140,44 @@ function HomeInner() {
           onTimetable={() => setImportOpen(true)}
         />
 
-        <span className="hidden h-6 w-px bg-slate-300 dark:bg-slate-600 sm:inline-block" />
-
         {/* ナビゲーション */}
-        <div className="flex items-center gap-1">
+        <div className="hidden items-center gap-1 sm:flex">
           <Link
             href="/calendar"
-            className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
           >
+            <CalendarIcon size={14} />
             カレンダー
           </Link>
           <Link
             href="/subjects"
-            className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
           >
+            <BookOpenIcon size={14} />
             科目
           </Link>
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
-            className="rounded border border-slate-300 px-2 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-elev)] text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
             aria-label="設定"
             title="設定"
           >
-            ⚙️
+            <SettingsIcon size={15} />
           </button>
         </div>
       </header>
 
       {dayTodos.length > 0 && (
-        <div className="rounded-md border border-rose-200 bg-rose-50 p-3 dark:border-rose-800 dark:bg-rose-950/30">
-          <div className="mb-1 text-xs font-semibold text-rose-700 dark:text-rose-300">この日の試験・課題</div>
-          <ul className="flex flex-wrap gap-2 text-sm">
+        <div className="rounded-2xl border border-rose-200/70 bg-rose-50/70 p-3 dark:border-rose-500/20 dark:bg-rose-500/10">
+          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-300">
+            この日の試験・課題
+          </div>
+          <ul className="flex flex-wrap gap-1.5 text-sm">
             {dayTodos.map((t) => (
               <li
                 key={t.id}
-                className="rounded-full bg-rose-100 px-3 py-1 text-rose-800 dark:bg-rose-900/50 dark:text-rose-200"
+                className="rounded-full bg-white/70 px-3 py-1 text-rose-800 ring-1 ring-inset ring-rose-200 dark:bg-rose-500/15 dark:text-rose-100 dark:ring-rose-400/30"
               >
                 {todoIcon(t.title)} {t.title}
               </li>
@@ -158,17 +186,17 @@ function HomeInner() {
         </div>
       )}
 
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_280px]">
-        <section className="overflow-y-auto rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_300px]">
+        <section className="overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-elev)] shadow-sm">
           {hydrated ? (
             <TimeboxGrid date={selectedDate} />
           ) : (
-            <div className="p-8 text-center text-slate-500">読み込み中...</div>
+            <div className="p-8 text-center text-sm text-[var(--fg-muted)]">読み込み中...</div>
           )}
         </section>
 
-        <section className="rounded-md border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
-          {hydrated ? <TodoSidebar /> : <div className="text-slate-500">読み込み中...</div>}
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elev)] p-4 shadow-sm">
+          {hydrated ? <TodoSidebar /> : <div className="text-sm text-[var(--fg-muted)]">読み込み中...</div>}
         </section>
       </div>
 
@@ -186,7 +214,7 @@ function HomeInner() {
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">読み込み中...</div>}>
+    <Suspense fallback={<div className="p-8 text-sm text-[var(--fg-muted)]">読み込み中...</div>}>
       <HomeInner />
     </Suspense>
   );

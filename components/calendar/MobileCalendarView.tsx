@@ -15,6 +15,14 @@ import RangeAddDialog from './RangeAddDialog';
 import NewEventDialog from '@/components/timebox/NewEventDialog';
 import SettingsDialog from '@/components/settings/SettingsDialog';
 import type { Event } from '@/lib/types';
+import {
+  ArrowLeftRightIcon,
+  BookOpenIcon,
+  CalendarTodayIcon,
+  CloseIcon,
+  PlusIcon,
+  SettingsIcon,
+} from '@/components/ui/Icon';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -33,7 +41,6 @@ export default function MobileCalendarView() {
   const today = todayStr();
   const todayDate = parseDate(today);
 
-  // Generate continuous date range (full weeks)
   const start = startOfWeek(addMonths(todayDate, -RANGE_BEFORE_MONTHS), { weekStartsOn: 0 });
   const end = endOfWeek(addMonths(todayDate, RANGE_AFTER_MONTHS), { weekStartsOn: 0 });
   const days = eachDayOfInterval({ start, end }).map((d) => formatDate(d));
@@ -69,7 +76,7 @@ export default function MobileCalendarView() {
 
   function onCellPointerDown(date: string, e: React.PointerEvent<HTMLElement>) {
     clearLongPress();
-    if (rangeState.kind !== 'off') return; // 範囲選択モード中は長押し無効
+    if (rangeState.kind !== 'off') return;
     const startX = e.clientX;
     const startY = e.clientY;
     longPressRef.current = {
@@ -129,13 +136,11 @@ export default function MobileCalendarView() {
     container.scrollTop += targetTop - containerTop - 60;
   }
 
-  // Scroll to today on mount
   useEffect(() => {
     scrollTo(today);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Track which month is most visible
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
@@ -187,47 +192,49 @@ export default function MobileCalendarView() {
       className="flex flex-col"
       style={{
         height: isMobile
-          ? 'calc(100dvh - 60px - env(safe-area-inset-bottom))'
+          ? 'calc(100dvh - 64px - env(safe-area-inset-bottom))'
           : '100dvh',
       }}
     >
-      {/* PC ヘッダー (モバイルは MobileShell の bottom tab で代替) */}
+      {/* PC ヘッダー */}
       {!isMobile && (
-        <header className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-slate-900">
-          <h1 className="mr-auto text-lg font-semibold">📅 カレンダー</h1>
+        <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--bg-elev)] px-5 py-3">
+          <h1 className="mr-auto text-lg font-semibold tracking-tight">カレンダー</h1>
           <Link
             href="/"
-            className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
           >
-            タイムボクシング
+            <CalendarTodayIcon size={14} />
+            今日
           </Link>
           <Link
             href="/subjects"
-            className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
           >
+            <BookOpenIcon size={14} />
             科目
           </Link>
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
-            className="rounded border border-slate-300 px-2 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
             aria-label="設定"
           >
-            ⚙️
+            <SettingsIcon size={15} />
           </button>
         </header>
       )}
 
       {/* Day-of-week header */}
-      <div className="grid grid-cols-7 border-b border-slate-200 bg-white text-center text-xs font-medium dark:border-slate-700 dark:bg-slate-900">
+      <div className="grid grid-cols-7 border-b border-[var(--border)] bg-[var(--bg-elev)] text-center text-[11px] font-medium uppercase tracking-wide">
         {WEEKDAYS.map((w, i) => (
           <div
             key={w}
             className={clsx(
-              'py-2',
-              i === 0 && 'text-red-600 dark:text-red-400',
-              i === 6 && 'text-blue-600 dark:text-blue-400',
-              i !== 0 && i !== 6 && 'text-slate-700 dark:text-slate-200',
+              'py-2.5',
+              i === 0 && 'text-rose-500',
+              i === 6 && 'text-sky-500',
+              i !== 0 && i !== 6 && 'text-[var(--fg-muted)]',
             )}
           >
             {w}
@@ -236,7 +243,7 @@ export default function MobileCalendarView() {
       </div>
 
       {/* Calendar grid */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain bg-[var(--bg)]">
         <div className="grid grid-cols-7">
           {days.map((date) => {
             const d = parseDate(date);
@@ -246,15 +253,10 @@ export default function MobileCalendarView() {
             const isVisibleMonth = dateMonth === visibleMonth;
             const isJpHoliday = isJapaneseHoliday(d);
 
-            // Border edges for highlighting visible month boundary
             const aboveDate = formatDate(addDays(d, -7));
             const belowDate = formatDate(addDays(d, 7));
-            const leftDate = dow > 0 ? formatDate(addDays(d, -1)) : null;
-            const rightDate = dow < 6 ? formatDate(addDays(d, 1)) : null;
             const aboveSame = aboveDate.slice(0, 7) === visibleMonth;
             const belowSame = belowDate.slice(0, 7) === visibleMonth;
-            const leftSame = leftDate ? leftDate.slice(0, 7) === visibleMonth : false;
-            const rightSame = rightDate ? rightDate.slice(0, 7) === visibleMonth : false;
 
             const dayEvents = events
               .filter((e) => e.date === date && !e.timetableId)
@@ -265,9 +267,10 @@ export default function MobileCalendarView() {
               ...dayEvents.map((e) => ({ kind: 'event' as const, item: e })),
             ];
             const isFirstOfMonth = d.getDate() === 1;
-            const numberLabel = isFirstOfMonth ? `${d.getMonth() + 1}月1日` : String(d.getDate());
+            const isPickEndStart =
+              rangeState.kind === 'pick-end' && rangeState.start === date;
 
-            const cell = (
+            return (
               <div
                 key={date}
                 data-date={date}
@@ -279,34 +282,47 @@ export default function MobileCalendarView() {
                 onPointerCancel={onCellPointerEnd}
                 onClick={() => onCellClick(date)}
                 className={clsx(
-                  'relative flex min-h-[88px] cursor-pointer flex-col gap-0.5 border-r border-b border-dotted border-slate-200 p-1 text-left dark:border-slate-700',
-                  isJpHoliday && !isToday && 'bg-pink-100 dark:bg-pink-900/30',
-                  isToday && 'bg-yellow-100 dark:bg-yellow-900/30',
-                  rangeState.kind === 'pick-end' && rangeState.start === date && 'bg-amber-200 dark:bg-amber-900/50',
-                  isVisibleMonth && !aboveSame && 'border-t-2 border-t-slate-700 dark:border-t-slate-200',
-                  isVisibleMonth && !belowSame && 'border-b-2 border-b-slate-700 dark:border-b-slate-200',
-                  isVisibleMonth && (!leftSame || dow === 0) && 'border-l-2 border-l-slate-700 dark:border-l-slate-200',
-                  isVisibleMonth && (!rightSame || dow === 6) && 'border-r-2 border-r-slate-700 dark:border-r-slate-200',
+                  'relative flex min-h-[92px] cursor-pointer flex-col gap-0.5 border-r border-b border-[var(--border)] p-1.5 text-left transition-colors',
+                  // Soft tint differences (visible month vs adjacent)
+                  !isVisibleMonth && 'bg-[var(--bg)]',
+                  isVisibleMonth && !isJpHoliday && 'bg-[var(--bg-elev)]',
+                  isJpHoliday && 'bg-rose-50/60 dark:bg-rose-500/10',
+                  isPickEndStart && 'bg-amber-100/70 dark:bg-amber-500/20',
+                  // Top border of visible month — accent line
+                  isVisibleMonth && !aboveSame && 'border-t-2 border-t-[var(--fg)]',
+                  isVisibleMonth && !belowSame && 'border-b-2 border-b-[var(--fg)]',
                 )}
               >
-                <div
-                  className={clsx(
-                    'text-[11px] font-semibold',
-                    isJpHoliday && 'text-red-600 dark:text-red-400',
-                    !isJpHoliday && dow === 0 && 'text-red-600 dark:text-red-400',
-                    !isJpHoliday && dow === 6 && 'text-blue-600 dark:text-blue-400',
-                    !isJpHoliday && dow !== 0 && dow !== 6 && 'text-slate-800 dark:text-slate-100',
-                    !isVisibleMonth && 'opacity-60',
+                <div className="flex items-center gap-1">
+                  {isFirstOfMonth && (
+                    <span className="tabular text-[9px] font-medium uppercase tracking-wider text-[var(--fg-muted)]">
+                      {d.getMonth() + 1}月
+                    </span>
                   )}
-                >
-                  {numberLabel}
+                  <span
+                    className={clsx(
+                      'tabular flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[11px] font-semibold',
+                      isToday && 'bg-[var(--fg)] text-[var(--bg)]',
+                      !isToday && isJpHoliday && 'text-rose-600 dark:text-rose-400',
+                      !isToday && !isJpHoliday && dow === 0 && 'text-rose-500',
+                      !isToday && !isJpHoliday && dow === 6 && 'text-sky-500',
+                      !isToday &&
+                        !isJpHoliday &&
+                        dow !== 0 &&
+                        dow !== 6 &&
+                        'text-[var(--fg)]',
+                      !isVisibleMonth && !isToday && 'opacity-40',
+                    )}
+                  >
+                    {d.getDate()}
+                  </span>
                 </div>
                 {items.slice(0, 3).map((it) => {
                   if (it.kind === 'todo') {
                     return (
                       <div
                         key={`t-${it.item.id}`}
-                        className="truncate rounded-sm bg-rose-100 px-1 text-[10px] leading-snug text-rose-800 dark:bg-rose-900/40 dark:text-rose-200"
+                        className="truncate rounded px-1 text-[10px] leading-snug bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200 dark:bg-rose-500/15 dark:text-rose-200 dark:ring-rose-400/30"
                       >
                         {todoIcon(it.item.title)}
                         {it.item.title}
@@ -323,7 +339,7 @@ export default function MobileCalendarView() {
                         setEditEvent(ev);
                       }}
                       className={clsx(
-                        'truncate rounded-sm px-1 text-left text-[10px] leading-snug',
+                        'truncate rounded px-1 text-left text-[10px] leading-snug',
                         ev.tentative
                           ? CATEGORY_STYLES[ev.category].chipTentative
                           : CATEGORY_STYLES[ev.category].chip,
@@ -334,11 +350,10 @@ export default function MobileCalendarView() {
                   );
                 })}
                 {items.length > 3 && (
-                  <div className="text-[9px] text-slate-400">+{items.length - 3}</div>
+                  <div className="text-[9px] text-[var(--fg-subtle)]">+{items.length - 3}</div>
                 )}
               </div>
             );
-            return cell;
           })}
         </div>
         <div className="h-32" />
@@ -346,42 +361,44 @@ export default function MobileCalendarView() {
 
       {/* 範囲選択モード時のバナー */}
       {rangeState.kind !== 'off' && (
-        <div className="flex items-center gap-2 border-t border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+        <div className="flex items-center gap-2 border-t border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-200">
+          <ArrowLeftRightIcon size={14} />
           <span className="flex-1">
             {rangeState.kind === 'pick-start'
-              ? '↔ 範囲予定: 開始日のセルをタップしてください'
-              : `↔ 開始: ${rangeState.start} → 終了日のセルをタップ`}
+              ? '範囲予定: 開始日のセルをタップ'
+              : `開始: ${rangeState.start} → 終了日のセルをタップ`}
           </span>
           <button
             type="button"
             onClick={() => setRangeState({ kind: 'off' })}
-            className="rounded border border-amber-400 px-2 py-0.5 text-[11px] hover:bg-amber-100 dark:hover:bg-amber-900"
+            className="flex items-center gap-1 rounded-full border border-amber-400/60 px-2.5 py-0.5 text-[11px] hover:bg-amber-100 dark:hover:bg-amber-500/25"
           >
+            <CloseIcon size={11} />
             キャンセル
           </button>
         </div>
       )}
 
-      {/* Sub-toolbar: jump-to-today + visible month + quick add + range */}
-      <div className="grid grid-cols-[1fr_2fr_1fr_1fr] items-center gap-1 border-t border-slate-200 bg-emerald-100 px-3 py-2 dark:border-slate-700 dark:bg-emerald-900/40">
+      {/* Sub-toolbar */}
+      <div className="grid grid-cols-[1fr_2fr_1fr_1fr] items-center gap-1 border-t border-[var(--border)] bg-[var(--bg-elev)] px-3 py-2">
         <button
           type="button"
           onClick={jumpToToday}
-          className="rounded-md py-2 text-sm font-medium text-slate-800 dark:text-slate-100"
+          className="flex h-9 items-center justify-center rounded-full text-sm font-medium text-[var(--fg-muted)] hover:bg-[var(--bg-soft)] hover:text-[var(--fg)]"
         >
           今日
         </button>
-        <div className="text-center text-sm font-semibold text-slate-900 dark:text-slate-100">
+        <div className="tabular text-center text-sm font-semibold tracking-tight text-[var(--fg)]">
           {monthLabel}
         </div>
         <button
           type="button"
           onClick={() => setAddOpen(today)}
-          className="flex items-center justify-center rounded-md py-2 text-2xl font-bold text-slate-800 dark:text-slate-100"
+          className="flex h-9 items-center justify-center rounded-full text-[var(--fg-muted)] hover:bg-[var(--bg-soft)] hover:text-[var(--fg)]"
           aria-label="単発追加"
           title="単発追加"
         >
-          ＋
+          <PlusIcon size={20} />
         </button>
         <button
           type="button"
@@ -389,15 +406,15 @@ export default function MobileCalendarView() {
             setRangeState((s) => (s.kind === 'off' ? { kind: 'pick-start' } : { kind: 'off' }))
           }
           className={clsx(
-            'flex items-center justify-center rounded-md py-2 text-lg font-bold',
+            'flex h-9 items-center justify-center rounded-full',
             rangeState.kind !== 'off'
               ? 'bg-amber-500 text-white'
-              : 'text-slate-800 dark:text-slate-100',
+              : 'text-[var(--fg-muted)] hover:bg-[var(--bg-soft)] hover:text-[var(--fg)]',
           )}
           aria-label="範囲追加"
           title="範囲予定 (合宿・旅行など)"
         >
-          ↔
+          <ArrowLeftRightIcon size={18} />
         </button>
       </div>
 

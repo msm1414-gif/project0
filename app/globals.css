@@ -1,20 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* Surface tokens */
+  --bg: #fafaf9;            /* page background — warm neutral */
+  --bg-elev: #ffffff;       /* cards, dialogs */
+  --bg-soft: #f4f4f3;       /* hover, subtle fills */
+  --bg-muted: #ededec;      /* borders' lighter cousin, chip bg */
+  --fg: #18181b;            /* primary text */
+  --fg-muted: #71717a;      /* secondary text */
+  --fg-subtle: #a1a1aa;     /* tertiary text */
+  --border: #e7e7e6;        /* default border */
+  --border-strong: #d4d4d3; /* emphasized border */
+  --accent: #0ea5e9;        /* brand accent (sky-500) */
+  --accent-fg: #ffffff;
+  --ring: rgba(14, 165, 233, 0.35);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #020617;
-    --foreground: #f1f5f9;
+    --bg: #0a0a0a;
+    --bg-elev: #141414;
+    --bg-soft: #1c1c1c;
+    --bg-muted: #262626;
+    --fg: #f5f5f4;
+    --fg-muted: #a1a1aa;
+    --fg-subtle: #71717a;
+    --border: #262626;
+    --border-strong: #3a3a3a;
+    --accent: #38bdf8;
+    --accent-fg: #0a0a0a;
+    --ring: rgba(56, 189, 248, 0.4);
   }
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
 }
 
 html,
@@ -24,8 +45,71 @@ body {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans",
-    "Noto Sans JP", Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Inter",
+    "Segoe UI", "Hiragino Sans", "Noto Sans JP", Helvetica, Arial, sans-serif;
+  font-feature-settings: "cv11", "ss01", "ss03";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Numeric tabular figures for times and dates */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Refined focus ring */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Calmer native control styles */
+input[type="date"],
+input[type="time"],
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* Subtle scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Reusable surface utility */
+.surface {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+}
+
+/* Smooth default transitions for interactive elements */
+button,
+a,
+[role="button"] {
+  transition-property: background-color, color, border-color, box-shadow, opacity, transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }

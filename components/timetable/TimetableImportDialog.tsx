@@ -202,12 +202,15 @@ function Body({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-2 backdrop-blur-sm sm:items-center sm:p-4"
+      onClick={onClose}
+    >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-[var(--border)] bg-[var(--bg-elev)] p-5 shadow-2xl shadow-black/10 sm:rounded-2xl"
       >
-        <h2 className="text-lg font-semibold">📷 時間割スクショから取り込み</h2>
+        <h2 className="text-lg font-semibold tracking-tight">時間割スクショから取り込み</h2>
         <p className="mt-1 text-xs text-slate-500">
           UTOL の時間割画面のスクショをアップロードすると、Claude が科目・曜日・時限を自動で読み取って、指定した学期に一括登録します。
         </p>

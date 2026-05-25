@@ -9,6 +9,13 @@ import { formatMinutes, parseDate, todayStr } from '@/lib/time';
 import type { Event } from '@/lib/types';
 import { isNotionConfigured, loadSettings } from '@/lib/settings';
 import { createNotionPage, ensureSubjectPage, heading2, paragraph } from '@/lib/notion-client';
+import {
+  CalendarTodayIcon,
+  ChevronLeftIcon,
+  ExternalLinkIcon,
+  FileTextIcon,
+  SettingsIcon,
+} from '@/components/ui/Icon';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -32,37 +39,41 @@ export default function SubjectDetailPage({ params }: PageProps) {
   const lectures = useMemo(() => {
     return events
       .filter((e) => e.category === 'university' && e.title === subjectTitle)
-      .sort((a, b) => (a.date === b.date ? a.startMinutes - b.startMinutes : a.date.localeCompare(b.date)));
+      .sort((a, b) =>
+        a.date === b.date ? a.startMinutes - b.startMinutes : a.date.localeCompare(b.date),
+      );
   }, [events, subjectTitle]);
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-4 lg:p-6">
-      <header className="flex flex-wrap items-center gap-2">
-        <div className="mr-auto flex items-center gap-2">
-          <span className={`h-3 w-3 rounded-full ${CATEGORY_STYLES.university.swatch}`} />
-          <h1 className="text-xl font-semibold">{subjectTitle}</h1>
-          <span className="text-sm text-slate-500">({lectures.length}回)</span>
-        </div>
+      <header className="flex flex-wrap items-center gap-3">
         <Link
           href="/subjects"
-          className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-elev)] text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
+          aria-label="科目一覧へ"
         >
-          科目一覧
+          <ChevronLeftIcon size={16} />
         </Link>
+        <div className="mr-auto flex items-center gap-2">
+          <span className={`h-2.5 w-2.5 rounded-full ${CATEGORY_STYLES.university.swatch}`} />
+          <h1 className="text-xl font-semibold tracking-tight">{subjectTitle}</h1>
+          <span className="tabular text-sm text-[var(--fg-muted)]">{lectures.length}回</span>
+        </div>
         <Link
           href="/"
-          className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
         >
-          タイムボクシング
+          <CalendarTodayIcon size={14} />
+          今日
         </Link>
       </header>
 
       {!hydrated ? (
-        <div className="rounded border border-dashed border-slate-300 p-8 text-center text-slate-500 dark:border-slate-700">
+        <div className="rounded-2xl border border-dashed border-[var(--border)] p-10 text-center text-sm text-[var(--fg-muted)]">
           読み込み中...
         </div>
       ) : lectures.length === 0 ? (
-        <div className="rounded border border-dashed border-slate-300 p-8 text-center text-slate-500 dark:border-slate-700">
+        <div className="rounded-2xl border border-dashed border-[var(--border)] p-10 text-center text-sm text-[var(--fg-muted)]">
           この科目の講義はありません。
         </div>
       ) : (
@@ -124,30 +135,33 @@ function LectureRow({
   return (
     <li
       className={clsx(
-        'rounded-lg border bg-white p-3 dark:bg-slate-900',
-        isPast ? 'border-slate-200 opacity-80 dark:border-slate-700' : 'border-slate-300 dark:border-slate-600',
+        'rounded-xl border bg-[var(--bg-elev)] p-3.5 shadow-sm transition',
+        isPast
+          ? 'border-[var(--border)] opacity-70'
+          : 'border-[var(--border-strong)]',
       )}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="min-w-[3rem] rounded bg-slate-100 px-2 py-0.5 text-center text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-          第{index}回
+        <span className="tabular min-w-[3rem] rounded-md bg-[var(--bg-muted)] px-2 py-0.5 text-center text-[11px] font-medium text-[var(--fg-muted)]">
+          #{index}
         </span>
-        <span className="text-sm font-semibold">
-          {event.date} ({weekday})
+        <span className="tabular text-sm font-semibold">
+          {event.date}
         </span>
-        <span className="text-sm text-slate-500">
+        <span className="text-xs text-[var(--fg-muted)]">({weekday})</span>
+        <span className="tabular text-sm text-[var(--fg-muted)]">
           {formatMinutes(event.startMinutes)}–{formatMinutes(event.endMinutes)}
         </span>
         <Link
           href={`/?date=${event.date}`}
-          className="ml-auto text-xs text-slate-500 underline hover:text-slate-700 dark:hover:text-slate-300"
+          className="ml-auto text-xs text-[var(--fg-muted)] underline-offset-2 hover:text-[var(--fg)] hover:underline"
         >
           この日を開く
         </Link>
       </div>
 
       {event.notes && (
-        <div className="mt-2 whitespace-pre-wrap text-xs text-slate-600 dark:text-slate-300">
+        <div className="mt-2 whitespace-pre-wrap rounded-md bg-[var(--bg-soft)] px-2.5 py-1.5 text-xs text-[var(--fg-muted)]">
           {event.notes}
         </div>
       )}
@@ -158,24 +172,30 @@ function LectureRow({
             href={event.notionPageUrl}
             target="_blank"
             rel="noreferrer"
-            className="text-sky-600 underline hover:text-sky-700 dark:text-sky-400"
+            className="inline-flex items-center gap-1.5 rounded-md text-sky-600 hover:text-sky-700 dark:text-sky-400"
           >
-            📝 Notion ノート
+            <FileTextIcon size={12} />
+            Notion ノート
+            <ExternalLinkIcon size={11} />
           </a>
         ) : notionConfigured ? (
           <button
             type="button"
             onClick={handleCreate}
             disabled={busy}
-            className="rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:hover:bg-slate-800"
+            className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border)] px-2 py-1 text-[11px] hover:border-[var(--border-strong)] disabled:opacity-40"
             title={`${subject} / ${event.date}`}
           >
-            {busy ? '作成中...' : '📝 Notion ノートを作成'}
+            <FileTextIcon size={12} />
+            {busy ? '作成中…' : 'Notion ノートを作成'}
           </button>
         ) : (
-          <span className="text-[11px] text-slate-400">⚙️ 設定で Notion 連携するとここにノートが生成されます</span>
+          <span className="inline-flex items-center gap-1 text-[11px] text-[var(--fg-subtle)]">
+            <SettingsIcon size={11} />
+            設定で Notion 連携するとノートが生成できます
+          </span>
         )}
-        {err && <span className="text-red-600">{err}</span>}
+        {err && <span className="text-rose-500">{err}</span>}
       </div>
     </li>
   );
