@@ -279,16 +279,14 @@ export default function MobileCalendarView() {
                 onPointerCancel={onCellPointerEnd}
                 onClick={() => onCellClick(date)}
                 className={clsx(
-                  'relative flex min-h-[88px] cursor-pointer flex-col gap-0.5 border-r border-b border-dotted p-1 text-left',
-                  isJpHoliday
-                    ? 'border-pink-300 dark:border-pink-700'
-                    : 'border-slate-200 dark:border-slate-700',
+                  'relative flex min-h-[88px] cursor-pointer flex-col gap-0.5 border-r border-b border-dotted border-slate-200 p-1 text-left dark:border-slate-700',
+                  isJpHoliday && !isToday && 'bg-pink-100 dark:bg-pink-900/30',
                   isToday && 'bg-yellow-100 dark:bg-yellow-900/30',
                   rangeState.kind === 'pick-end' && rangeState.start === date && 'bg-amber-200 dark:bg-amber-900/50',
-                  isVisibleMonth && !aboveSame && (isJpHoliday ? 'border-t-2 border-t-pink-500 dark:border-t-pink-400' : 'border-t-2 border-t-slate-700 dark:border-t-slate-200'),
-                  isVisibleMonth && !belowSame && (isJpHoliday ? 'border-b-2 border-b-pink-500 dark:border-b-pink-400' : 'border-b-2 border-b-slate-700 dark:border-b-slate-200'),
-                  isVisibleMonth && (!leftSame || dow === 0) && (isJpHoliday ? 'border-l-2 border-l-pink-500 dark:border-l-pink-400' : 'border-l-2 border-l-slate-700 dark:border-l-slate-200'),
-                  isVisibleMonth && (!rightSame || dow === 6) && (isJpHoliday ? 'border-r-2 border-r-pink-500 dark:border-r-pink-400' : 'border-r-2 border-r-slate-700 dark:border-r-slate-200'),
+                  isVisibleMonth && !aboveSame && 'border-t-2 border-t-slate-700 dark:border-t-slate-200',
+                  isVisibleMonth && !belowSame && 'border-b-2 border-b-slate-700 dark:border-b-slate-200',
+                  isVisibleMonth && (!leftSame || dow === 0) && 'border-l-2 border-l-slate-700 dark:border-l-slate-200',
+                  isVisibleMonth && (!rightSame || dow === 6) && 'border-r-2 border-r-slate-700 dark:border-r-slate-200',
                 )}
               >
                 <div
