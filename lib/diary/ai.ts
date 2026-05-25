@@ -56,6 +56,9 @@ class GeminiProvider implements AIProvider {
       config: {
         systemInstruction: opts.system,
         maxOutputTokens: opts.maxTokens ?? 1024,
+        // 会話ターンは「深く考える」より「ぱっと自然に返す」のが大事。
+        // 2.5系の thinking が出力トークンを食い潰して途中で切れるのを防ぐため無効化。
+        thinkingConfig: { thinkingBudget: 0 },
       },
     });
     return (res.text ?? '').trim();

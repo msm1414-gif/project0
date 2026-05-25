@@ -71,7 +71,7 @@ export async function generateOpeningMessage(
   return getAIProvider().generate({
     system,
     turns: [...toTurns(recentMessages), { role: 'user', content: '(夜の会話を始めて)' }],
-    maxTokens: 256,
+    maxTokens: 512,
   });
 }
 
@@ -87,6 +87,6 @@ export async function generateSessionReply(
   return getAIProvider().generate({
     system,
     turns: toTurns(sessionMessages),
-    maxTokens: 256,
+    maxTokens: 512,
   });
 }
