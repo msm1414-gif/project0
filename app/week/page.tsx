@@ -18,10 +18,10 @@ import {
   snap,
   todayStr,
 } from '@/lib/time';
-import { CATEGORY_STYLES } from '@/lib/colors';
 import { isJapaneseHoliday } from '@/lib/holidays';
 import { calendarTodosByDate } from '@/lib/todo-calendar';
 import CurrentTimeLine from '@/components/timebox/CurrentTimeLine';
+import EventBlock from '@/components/timebox/EventBlock';
 import NewEventDialog from '@/components/timebox/NewEventDialog';
 import QuickAddDialog from '@/components/calendar/QuickAddDialog';
 import SettingsDialog from '@/components/settings/SettingsDialog';
@@ -308,41 +308,16 @@ function WeekInner() {
                     ].join(', '),
                   }}
                 >
-                  {allDayEvents.map((ev) => {
-                    const top = minutesToPx(ev.startMinutes);
-                    const height = Math.max(
-                      minutesToPx(ev.endMinutes - ev.startMinutes),
-                      14,
-                    );
-                    const style = CATEGORY_STYLES[ev.category];
-                    return (
-                      <button
-                        key={ev.id}
-                        type="button"
-                        data-event-block
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditEvent(ev);
-                        }}
-                        className={clsx(
-                          'absolute left-0.5 right-0.5 overflow-hidden rounded-md text-left shadow-sm transition-shadow hover:shadow-md',
-                          ev.tentative ? style.blockTentative : style.block,
-                        )}
-                        style={{ top, height }}
-                      >
-                        <div className="px-1.5 py-1 leading-tight">
-                          <div className="truncate text-[10px] font-medium">
-                            {ev.title || '(無題)'}
-                          </div>
-                          {height > 32 && (
-                            <div className="tabular text-[9px] opacity-75">
-                              {formatMinutes(ev.startMinutes)}–{formatMinutes(ev.endMinutes)}
-                            </div>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
+                  {allDayEvents.map((ev) => (
+                    <div key={ev.id} data-event-block>
+                      <EventBlock
+                        event={ev}
+                        dense
+                        onChange={(patch) => updateEvent(ev.id, patch)}
+                        onClick={() => setEditEvent(ev)}
+                      />
+                    </div>
+                  ))}
                   {isToday && <CurrentTimeLine />}
                 </div>
               );

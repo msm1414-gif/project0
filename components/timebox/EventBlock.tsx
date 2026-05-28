@@ -19,9 +19,10 @@ interface Props {
   event: Event;
   onChange: (patch: Partial<Pick<Event, 'startMinutes' | 'endMinutes'>>) => void;
   onClick: () => void;
+  dense?: boolean;
 }
 
-export default function EventBlock({ event, onChange, onClick }: Props) {
+export default function EventBlock({ event, onChange, onClick, dense = false }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [preview, setPreview] = useState<{ start: number; end: number } | null>(null);
   const dragRef = useRef<{
@@ -174,12 +175,14 @@ export default function EventBlock({ event, onChange, onClick }: Props) {
   }
 
   const compact = duration <= 25;
+  const showTime = !compact && (dense ? duration > 40 : true);
 
   return (
     <div
       ref={ref}
       className={clsx(
-        'absolute left-1.5 right-1.5 rounded-lg cursor-grab select-none overflow-hidden touch-pan-y transition-shadow active:cursor-grabbing',
+        'absolute cursor-grab select-none overflow-hidden touch-pan-y transition-shadow active:cursor-grabbing',
+        dense ? 'left-0.5 right-0.5 rounded-md' : 'left-1.5 right-1.5 rounded-lg',
         preview ? 'shadow-md ring-2 ring-sky-400/70' : 'shadow-sm hover:shadow-md',
         event.tentative ? style.blockTentative : style.block,
       )}
@@ -196,10 +199,16 @@ export default function EventBlock({ event, onChange, onClick }: Props) {
         className="absolute inset-x-0 top-0 h-2 cursor-ns-resize touch-pan-y"
         onPointerDown={(e) => beginDrag('resize-top', e)}
       />
-      <div className={clsx('px-2 py-1 text-xs leading-tight', compact && 'py-0.5')}>
+      <div
+        className={clsx(
+          'leading-tight',
+          dense ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs',
+          compact && !dense && 'py-0.5',
+        )}
+      >
         <div className="truncate font-medium">{event.title || '(無題)'}</div>
-        {!compact && (
-          <div className="tabular text-[11px] opacity-75">
+        {showTime && (
+          <div className={clsx('tabular opacity-75', dense ? 'text-[9px]' : 'text-[11px]')}>
             {formatMinutes(view.start)} – {formatMinutes(view.end)}
           </div>
         )}
