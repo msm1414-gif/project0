@@ -38,6 +38,16 @@ export function CalendarTodayIcon(p: IconProps) {
   );
 }
 
+export function CalendarWeekIcon(p: IconProps) {
+  return (
+    <svg {...base(p)}>
+      <rect x="3" y="4.5" width="18" height="16" rx="2.5" />
+      <path d="M8 2.5v4M16 2.5v4M3 9.5h18" />
+      <path d="M7 14h10M7 17h10" />
+    </svg>
+  );
+}
+
 export function CheckSquareIcon(p: IconProps) {
   return (
     <svg {...base(p)}>

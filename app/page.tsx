@@ -17,6 +17,7 @@ import { formatDate, parseDate, todayStr } from '@/lib/time';
 import { calendarTodosByDate, todoIcon } from '@/lib/todo-calendar';
 import {
   CalendarIcon,
+  CalendarWeekIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   SettingsIcon,
@@ -143,11 +144,18 @@ function HomeInner() {
         {/* ナビゲーション */}
         <div className="hidden items-center gap-1 sm:flex">
           <Link
+            href="/week"
+            className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
+          >
+            <CalendarWeekIcon size={14} />
+            週
+          </Link>
+          <Link
             href="/calendar"
             className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
           >
             <CalendarIcon size={14} />
-            カレンダー
+            月
           </Link>
           <Link
             href="/subjects"

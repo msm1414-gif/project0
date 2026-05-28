@@ -19,6 +19,7 @@ import {
   ArrowLeftRightIcon,
   BookOpenIcon,
   CalendarTodayIcon,
+  CalendarWeekIcon,
   CloseIcon,
   PlusIcon,
   SettingsIcon,
@@ -200,6 +201,17 @@ export default function MobileCalendarView() {
       {!isMobile && (
         <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--bg-elev)] px-5 py-3">
           <h1 className="mr-auto text-lg font-semibold tracking-tight">カレンダー</h1>
+          <div className="flex items-center gap-0.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] p-0.5 text-xs">
+            <span className="rounded-full bg-[var(--bg-muted)] px-3 py-1 font-medium text-[var(--fg)]">
+              月
+            </span>
+            <Link
+              href="/week"
+              className="rounded-full px-3 py-1 text-[var(--fg-muted)] hover:bg-[var(--bg-soft)] hover:text-[var(--fg)]"
+            >
+              週
+            </Link>
+          </div>
           <Link
             href="/"
             className="flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
@@ -380,7 +392,7 @@ export default function MobileCalendarView() {
       )}
 
       {/* Sub-toolbar */}
-      <div className="grid grid-cols-[1fr_2fr_1fr_1fr] items-center gap-1 border-t border-[var(--border)] bg-[var(--bg-elev)] px-3 py-2">
+      <div className="grid grid-cols-[1fr_1fr_2fr_1fr_1fr] items-center gap-1 border-t border-[var(--border)] bg-[var(--bg-elev)] px-3 py-2">
         <button
           type="button"
           onClick={jumpToToday}
@@ -388,6 +400,15 @@ export default function MobileCalendarView() {
         >
           今日
         </button>
+        <Link
+          href="/week"
+          className="flex h-9 items-center justify-center gap-1 rounded-full text-sm font-medium text-[var(--fg-muted)] hover:bg-[var(--bg-soft)] hover:text-[var(--fg)]"
+          aria-label="週ビュー"
+          title="週ビュー"
+        >
+          <CalendarWeekIcon size={16} />
+          週
+        </Link>
         <div className="tabular text-center text-sm font-semibold tracking-tight text-[var(--fg)]">
           {monthLabel}
         </div>
