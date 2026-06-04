@@ -9,6 +9,7 @@ import { useApp } from '@/lib/store';
 import {
   DAY_MINUTES,
   GRID_HEIGHT,
+  MIN_EVENT_MINUTES,
   PX_PER_HOUR,
   formatDate,
   formatMinutes,
@@ -43,6 +44,8 @@ function isMobileUA(): boolean {
   return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
+type Selection = { date: string; startMinutes: number; endMinutes: number };
+
 function WeekInner() {
   const router = useRouter();
   const sp = useSearchParams();
@@ -54,6 +57,7 @@ function WeekInner() {
   const hydrated = useApp((s) => s.hydrated);
   const events = useApp((s) => s.events);
   const todos = useApp((s) => s.todos);
+  const addEvent = useApp((s) => s.addEvent);
   const updateEvent = useApp((s) => s.updateEvent);
   const removeEvent = useApp((s) => s.removeEvent);
   const removeGroup = useApp((s) => s.removeGroup);
@@ -76,6 +80,24 @@ function WeekInner() {
     { date: string; start: number; end: number } | null
   >(null);
   const [editEvent, setEditEvent] = useState<Event | null>(null);
+  const [newDialog, setNewDialog] = useState<Selection | null>(null);
+
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const selectingRef = useRef<{
+    date: string;
+    anchor: number;
+    pointerId: number;
+    moved: boolean;
+    columnEl: HTMLElement;
+  } | null>(null);
+  const longPressRef = useRef<{
+    date: string;
+    startX: number;
+    startY: number;
+    pointerId: number;
+    columnEl: HTMLElement;
+    timer: ReturnType<typeof setTimeout>;
+  } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -95,14 +117,143 @@ function WeekInner() {
     router.replace('/week');
   }
 
-  function onColumnClick(e: React.MouseEvent<HTMLDivElement>, date: string) {
-    if ((e.target as HTMLElement).closest('[data-event-block]')) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const start = Math.max(0, Math.min(DAY_MINUTES - 60, snap(pxToMinutes(y))));
-    const end = Math.min(DAY_MINUTES, start + 60);
-    setQuickAdd({ date, start, end });
+  function yToMinutes(clientY: number, columnEl: HTMLElement): number {
+    const rect = columnEl.getBoundingClientRect();
+    return pxToMinutes(clientY - rect.top);
   }
+
+  function cancelLongPress() {
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current.timer);
+      longPressRef.current = null;
+    }
+  }
+
+  function beginSelection(
+    date: string,
+    clientY: number,
+    pointerId: number,
+    columnEl: HTMLElement,
+  ) {
+    const anchor = snap(yToMinutes(clientY, columnEl));
+    selectingRef.current = { date, anchor, pointerId, moved: false, columnEl };
+    columnEl.style.touchAction = 'none';
+    try {
+      columnEl.setPointerCapture(pointerId);
+    } catch {}
+    setSelection({
+      date,
+      startMinutes: anchor,
+      endMinutes: anchor + MIN_EVENT_MINUTES,
+    });
+  }
+
+  function onColumnPointerDown(e: React.PointerEvent<HTMLDivElement>, date: string) {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if ((e.target as HTMLElement).closest('[data-event-block]')) return;
+
+    const columnEl = e.currentTarget;
+
+    if (e.pointerType === 'touch') {
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const pointerId = e.pointerId;
+      cancelLongPress();
+      longPressRef.current = {
+        date,
+        startX,
+        startY,
+        pointerId,
+        columnEl,
+        timer: setTimeout(() => {
+          longPressRef.current = null;
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            try {
+              navigator.vibrate?.(30);
+            } catch {}
+          }
+          beginSelection(date, startY, pointerId, columnEl);
+        }, 350),
+      };
+      return;
+    }
+
+    beginSelection(date, e.clientY, e.pointerId, columnEl);
+  }
+
+  function onColumnPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const lp = longPressRef.current;
+    if (lp) {
+      if (Math.abs(e.clientX - lp.startX) > 10 || Math.abs(e.clientY - lp.startY) > 10) {
+        cancelLongPress();
+      }
+      return;
+    }
+    const s = selectingRef.current;
+    if (!s) return;
+    const cur = snap(yToMinutes(e.clientY, s.columnEl));
+    if (cur !== s.anchor) s.moved = true;
+    const start = Math.max(0, Math.min(s.anchor, cur));
+    const end = Math.min(DAY_MINUTES, Math.max(s.anchor, cur));
+    setSelection({
+      date: s.date,
+      startMinutes: start,
+      endMinutes: Math.max(end, start + MIN_EVENT_MINUTES),
+    });
+  }
+
+  function finishSelection(e: React.PointerEvent<HTMLDivElement>, commit: boolean) {
+    cancelLongPress();
+    const s = selectingRef.current;
+    selectingRef.current = null;
+    const sel = selection;
+    setSelection(null);
+    if (!s) return;
+    s.columnEl.style.touchAction = '';
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+    if (!commit || !sel) return;
+    if (!s.moved) {
+      // Simple tap → open quick add with a 1-hour default at the tap position
+      const start = Math.max(0, Math.min(DAY_MINUTES - 60, sel.startMinutes));
+      const end = Math.min(DAY_MINUTES, start + 60);
+      setQuickAdd({ date: s.date, start, end });
+      return;
+    }
+    if (sel.endMinutes - sel.startMinutes < MIN_EVENT_MINUTES) return;
+    setNewDialog(sel);
+  }
+
+  function onColumnPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    finishSelection(e, true);
+  }
+
+  function onColumnPointerCancel(e: React.PointerEvent<HTMLDivElement>) {
+    finishSelection(e, false);
+  }
+
+  // Prevent page scroll while drag-selecting on touch
+  useEffect(() => {
+    function preventScroll(ev: TouchEvent) {
+      if (selectingRef.current) ev.preventDefault();
+    }
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+    return () => document.removeEventListener('touchmove', preventScroll);
+  }, []);
+
+  // Escape cancels selection / closes dialogs
+  useEffect(() => {
+    function onKey(ev: KeyboardEvent) {
+      if (ev.key === 'Escape') {
+        setNewDialog(null);
+        setSelection(null);
+        selectingRef.current = null;
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const todoMap = calendarTodosByDate(todos);
 
@@ -292,12 +443,16 @@ function WeekInner() {
               const fivePx = minutesToPx(5);
               const halfPx = minutesToPx(30);
               const hourPx = minutesToPx(60);
+              const showSelection = selection && selection.date === date;
               return (
                 <div
                   key={date}
-                  onClick={(e) => onColumnClick(e, date)}
+                  onPointerDown={(e) => onColumnPointerDown(e, date)}
+                  onPointerMove={onColumnPointerMove}
+                  onPointerUp={onColumnPointerUp}
+                  onPointerCancel={onColumnPointerCancel}
                   className={clsx(
-                    'relative cursor-pointer border-r border-[var(--border)]',
+                    'relative cursor-pointer select-none touch-pan-y border-r border-[var(--border)]',
                     isHoliday && 'bg-rose-50/40 dark:bg-rose-500/5',
                   )}
                   style={{
@@ -308,6 +463,22 @@ function WeekInner() {
                     ].join(', '),
                   }}
                 >
+                  {showSelection && (
+                    <div
+                      className="pointer-events-none absolute left-0.5 right-0.5 z-10 overflow-hidden rounded-md border-2 border-dashed border-sky-400 bg-sky-100/50 dark:bg-sky-500/20"
+                      style={{
+                        top: minutesToPx(selection!.startMinutes),
+                        height: Math.max(
+                          minutesToPx(selection!.endMinutes - selection!.startMinutes),
+                          12,
+                        ),
+                      }}
+                    >
+                      <div className="tabular px-1.5 py-0.5 text-[10px] font-medium text-sky-700 dark:text-sky-200">
+                        {formatMinutes(selection!.startMinutes)}–{formatMinutes(selection!.endMinutes)}
+                      </div>
+                    </div>
+                  )}
                   {allDayEvents.map((ev) => (
                     <div key={ev.id} data-event-block>
                       <EventBlock
@@ -334,6 +505,20 @@ function WeekInner() {
         defaultStart={quickAdd?.start}
         defaultEnd={quickAdd?.end}
         onClose={() => setQuickAdd(null)}
+      />
+      <NewEventDialog
+        open={newDialog !== null}
+        initial={
+          newDialog
+            ? { startMinutes: newDialog.startMinutes, endMinutes: newDialog.endMinutes }
+            : undefined
+        }
+        onClose={() => setNewDialog(null)}
+        onSave={(data) => {
+          if (!newDialog) return;
+          addEvent({ ...data, date: newDialog.date });
+          setNewDialog(null);
+        }}
       />
       <NewEventDialog
         open={editEvent !== null}
