@@ -10,8 +10,9 @@ function jstHour(): number {
 }
 
 // 夜、Bot から会話の口火を切る（push 1通）。
-// Vercel Cron は1日1回固定時刻で起動し、その時刻に delivery_hour が一致する
-// ユーザーにだけ push する。delivery_hour を変える場合は vercel.json の schedule も合わせる。
+// Vercel Cron は無料プランだと1日1回・固定時刻でしか走れないため、
+// 「Cron が走った時刻＝配信時刻」とみなし、全ユーザーに送る。
+// 配信時刻を変えたいときは vercel.json の schedule（UTC）だけを変える。
 export async function GET(req: Request) {
   const auth = req.headers.get('authorization');
   if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -20,16 +21,11 @@ export async function GET(req: Request) {
 
   const hour = jstHour();
   let pushed = 0;
-  let skipped = 0;
   const errors: string[] = [];
 
   try {
     const users = await listUsers();
     for (const user of users) {
-      if (user.deliveryHour !== hour) {
-        skipped++;
-        continue;
-      }
       try {
         const recent = await getRecentMessages(user.id, 40);
         const opening = await generateOpeningMessage(user, recent);
@@ -48,5 +44,5 @@ export async function GET(req: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true, hour, pushed, skipped, errors });
+  return NextResponse.json({ ok: true, hour, pushed, errors });
 }
