@@ -9,6 +9,7 @@ import { todayStr } from '@/lib/time';
 import {
   CalendarIcon,
   CalendarTodayIcon,
+  CalendarWeekIcon,
   CheckSquareIcon,
   SettingsIcon,
 } from '@/components/ui/Icon';
@@ -56,9 +57,16 @@ function BottomTabBar() {
     {
       key: 'cal',
       Icon: CalendarIcon,
-      label: 'カレンダー',
+      label: '月',
       href: '/calendar',
       active: pathname === '/calendar',
+    },
+    {
+      key: 'week',
+      Icon: CalendarWeekIcon,
+      label: '週',
+      href: '/week',
+      active: pathname.startsWith('/week'),
     },
     {
       key: 'today',
@@ -79,7 +87,7 @@ function BottomTabBar() {
   return (
     <>
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-[var(--border)] bg-[var(--bg-elev)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--bg-elev)]/80"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--border)] bg-[var(--bg-elev)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--bg-elev)]/80"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {tabs.map((t) => (
@@ -121,7 +129,7 @@ function TabContent({
   return (
     <div
       className={clsx(
-        'flex flex-col items-center gap-0.5 rounded-full px-3 py-1 transition-colors',
+        'flex flex-col items-center gap-0.5 rounded-full px-1.5 py-1 transition-colors',
         active
           ? 'text-[var(--fg)]'
           : 'text-[var(--fg-muted)] group-hover:text-[var(--fg)]',
@@ -129,7 +137,7 @@ function TabContent({
     >
       <span
         className={clsx(
-          'flex h-7 w-12 items-center justify-center rounded-full transition-all',
+          'flex h-7 w-11 items-center justify-center rounded-full transition-all',
           active && 'bg-[var(--bg-muted)]',
         )}
       >
