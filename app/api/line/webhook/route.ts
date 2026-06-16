@@ -9,6 +9,10 @@ import {
 } from '@/lib/diary/line';
 import type { DiaryMessage } from '@/lib/diary/types';
 
+// 長文時の AI 生成 + 各種 API 呼び出しで既定の10秒を超えがちなので拡張する。
+// Vercel Hobby プランでも 60 秒まで指定可能。
+export const maxDuration = 60;
+
 // 夜のセッションが「開いている」とみなす猶予（最後の bot セッション発言からの経過）。
 const SESSION_WINDOW_MS = 3 * 60 * 60 * 1000;
 
