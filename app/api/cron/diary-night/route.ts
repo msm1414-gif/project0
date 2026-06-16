@@ -3,6 +3,9 @@ import { getRecentMessages, insertMessage, listUsers } from '@/lib/diary/db';
 import { generateOpeningMessage } from '@/lib/diary/conversation';
 import { pushText } from '@/lib/diary/line';
 
+// 全ユーザー分の AI 生成を順に回すので既定の10秒で足りない。
+export const maxDuration = 60;
+
 // 現在の JST 時刻（0-23）。
 function jstHour(): number {
   const d = new Date();
