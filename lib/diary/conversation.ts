@@ -2,7 +2,12 @@
 // 体調スロットや障害時フォールバックは定型（line.ts 呼び出し側で対応）。
 
 import { getAIProvider, type ChatTurn } from './ai';
-import { formatEventsForPrompt, getCalendarEvents, type CalendarEvent } from './calendar';
+import {
+  formatEventsForPrompt,
+  getCalendarEvents,
+  jstWeekday,
+  type CalendarEvent,
+} from './calendar';
 import type { DiaryMessage, DiaryUser } from './types';
 
 // Bot の人格（設計書7-5・口調は未確定。ここを調整すれば一貫した人格になる）。
@@ -35,13 +40,17 @@ function persona(): string {
 }
 
 function buildSystemPrompt(calendar: CalendarEvent[], extraContext: string): string {
+  const today = jstDate(0);
+  const todayLine = `【今日の日付】${today}(${jstWeekday(today)})  ※曜日や「今日/明日」は必ずこれを基準に判断すること`;
   return [
     persona(),
+    '',
+    todayLine,
     '',
     SLOT_GUIDANCE,
     '',
     '【今週のカレンダー予定（毎回必ず読み、関係する予定に触れて質問すること）】',
-    formatEventsForPrompt(calendar),
+    formatEventsForPrompt(calendar, today),
     extraContext ? `\n【補足】\n${extraContext}` : '',
   ].join('\n');
 }

@@ -50,16 +50,40 @@ export async function getCalendarEvents(
     .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
 }
 
+const JST_WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'] as const;
+
+// YYYY-MM-DD（JST想定）から日本語の曜日1文字を返す。
+export function jstWeekday(date: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return JST_WEEKDAYS[wd];
+}
+
 // 予定を「質問の燃料」としてプロンプトに渡せる文字列に整形する。
-// 例: 「水(05-21) 14:00 プレゼン本番 [大学]」
-export function formatEventsForPrompt(events: CalendarEvent[]): string {
+// 例: 「06-17(火) 14:00-15:30 ゼミ [大学] ←今日」
+export function formatEventsForPrompt(events: CalendarEvent[], todayDate?: string): string {
   if (events.length === 0) return '(この期間の予定なし)';
   return events
     .map((e) => {
+      const wd = jstWeekday(e.date);
+      const md = e.date.slice(5); // MM-DD
       const when = e.allDay ? '終日' : `${e.start}-${e.end}`;
       const flags = e.tentative ? ' (仮)' : '';
       const notes = e.notes ? ` ※${e.notes}` : '';
-      return `${e.date} ${when} ${e.title} [${e.category}]${flags}${notes}`;
+      const marker =
+        todayDate && e.date === todayDate
+          ? ' ←今日'
+          : todayDate && e.date === addDays(todayDate, 1)
+            ? ' ←明日'
+            : '';
+      return `${md}(${wd}) ${when} ${e.title} [${e.category}]${flags}${notes}${marker}`;
     })
     .join('\n');
+}
+
+function addDays(date: string, days: number): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
 }
