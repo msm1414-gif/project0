@@ -10,12 +10,12 @@ import type { Event } from '@/lib/types';
 import { isNotionConfigured, loadSettings } from '@/lib/settings';
 import { createNotionPage, ensureSubjectPage, heading2, paragraph } from '@/lib/notion-client';
 import {
-  CalendarTodayIcon,
   ChevronLeftIcon,
   ExternalLinkIcon,
   FileTextIcon,
   SettingsIcon,
 } from '@/components/ui/Icon';
+import ViewSwitcher from '@/components/ui/ViewSwitcher';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -59,13 +59,7 @@ export default function SubjectDetailPage({ params }: PageProps) {
           <h1 className="text-xl font-semibold tracking-tight">{subjectTitle}</h1>
           <span className="tabular text-sm text-[var(--fg-muted)]">{lectures.length}回</span>
         </div>
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
-        >
-          <CalendarTodayIcon size={14} />
-          今日
-        </Link>
+        <ViewSwitcher />
       </header>
 
       {!hydrated ? (

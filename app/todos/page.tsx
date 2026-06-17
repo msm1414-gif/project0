@@ -4,7 +4,8 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/lib/store';
 import TodoSidebar from '@/components/todo/TodoSidebar';
-import { CalendarIcon, CalendarTodayIcon } from '@/components/ui/Icon';
+import { BookOpenIcon } from '@/components/ui/Icon';
+import ViewSwitcher from '@/components/ui/ViewSwitcher';
 
 export default function TodosPage() {
   const hydrate = useApp((s) => s.hydrate);
@@ -16,21 +17,15 @@ export default function TodosPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4 lg:p-6">
-      <header className="flex items-center gap-2">
+      <header className="flex flex-wrap items-center gap-2">
         <h1 className="mr-auto text-xl font-semibold tracking-tight">ToDo</h1>
+        <ViewSwitcher />
         <Link
-          href="/calendar"
+          href="/subjects"
           className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
         >
-          <CalendarIcon size={14} />
-          カレンダー
-        </Link>
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
-        >
-          <CalendarTodayIcon size={14} />
-          今日
+          <BookOpenIcon size={14} />
+          科目
         </Link>
       </header>
 

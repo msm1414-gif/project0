@@ -4,7 +4,8 @@ import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/lib/store';
 import { CATEGORY_STYLES } from '@/lib/colors';
-import { CalendarTodayIcon, CalendarIcon, FileTextIcon } from '@/components/ui/Icon';
+import { FileTextIcon } from '@/components/ui/Icon';
+import ViewSwitcher from '@/components/ui/ViewSwitcher';
 
 export default function SubjectsPage() {
   const hydrate = useApp((s) => s.hydrate);
@@ -40,20 +41,7 @@ export default function SubjectsPage() {
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-4 lg:p-6">
       <header className="flex flex-wrap items-center gap-2">
         <h1 className="mr-auto text-xl font-semibold tracking-tight">科目一覧</h1>
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
-        >
-          <CalendarTodayIcon size={14} />
-          今日
-        </Link>
-        <Link
-          href="/calendar"
-          className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
-        >
-          <CalendarIcon size={14} />
-          カレンダー
-        </Link>
+        <ViewSwitcher />
       </header>
 
       {!hydrated ? (

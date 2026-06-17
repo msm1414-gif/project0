@@ -29,12 +29,11 @@ import SettingsDialog from '@/components/settings/SettingsDialog';
 import type { Event } from '@/lib/types';
 import {
   BookOpenIcon,
-  CalendarIcon,
-  CalendarTodayIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   SettingsIcon,
 } from '@/components/ui/Icon';
+import ViewSwitcher from '@/components/ui/ViewSwitcher';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
@@ -312,21 +311,8 @@ function WeekInner() {
           </button>
         </div>
 
-        <div className="hidden items-center gap-1 sm:flex">
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
-          >
-            <CalendarTodayIcon size={14} />
-            今日
-          </Link>
-          <Link
-            href="/calendar"
-            className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
-          >
-            <CalendarIcon size={14} />
-            月
-          </Link>
+        <div className="hidden items-center gap-2 sm:flex">
+          <ViewSwitcher active="week" />
           <Link
             href="/subjects"
             className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"

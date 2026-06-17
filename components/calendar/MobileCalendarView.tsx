@@ -18,12 +18,12 @@ import type { Event } from '@/lib/types';
 import {
   ArrowLeftRightIcon,
   BookOpenIcon,
-  CalendarTodayIcon,
   CalendarWeekIcon,
   CloseIcon,
   PlusIcon,
   SettingsIcon,
 } from '@/components/ui/Icon';
+import ViewSwitcher from '@/components/ui/ViewSwitcher';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -201,24 +201,7 @@ export default function MobileCalendarView() {
       {!isMobile && (
         <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--bg-elev)] px-5 py-3">
           <h1 className="mr-auto text-lg font-semibold tracking-tight">カレンダー</h1>
-          <div className="flex items-center gap-0.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] p-0.5 text-xs">
-            <span className="rounded-full bg-[var(--bg-muted)] px-3 py-1 font-medium text-[var(--fg)]">
-              月
-            </span>
-            <Link
-              href="/week"
-              className="rounded-full px-3 py-1 text-[var(--fg-muted)] hover:bg-[var(--bg-soft)] hover:text-[var(--fg)]"
-            >
-              週
-            </Link>
-          </div>
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
-          >
-            <CalendarTodayIcon size={14} />
-            今日
-          </Link>
+          <ViewSwitcher active="month" />
           <Link
             href="/subjects"
             className="flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
