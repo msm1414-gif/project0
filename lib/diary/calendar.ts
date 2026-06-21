@@ -59,31 +59,41 @@ export function jstWeekday(date: string): string {
   return JST_WEEKDAYS[wd];
 }
 
+// today から見た date の日数差（負＝過去、0＝今日、正＝未来）。
+function diffDays(today: string, date: string): number {
+  const [ty, tm, td] = today.split('-').map(Number);
+  const [y, m, d] = date.split('-').map(Number);
+  const t = Date.UTC(ty, tm - 1, td);
+  const x = Date.UTC(y, m - 1, d);
+  return Math.round((x - t) / 86_400_000);
+}
+
+// 「今日」「明日」「3日後(金)」のような相対ラベルを返す。
+function relativeLabel(today: string, date: string): string {
+  const diff = diffDays(today, date);
+  const wd = jstWeekday(date);
+  if (diff === 0) return `今日(${wd})`;
+  if (diff === 1) return `明日(${wd})`;
+  if (diff === 2) return `明後日(${wd})`;
+  if (diff > 0) return `${diff}日後(${wd})`;
+  if (diff === -1) return `昨日(${wd})`;
+  if (diff === -2) return `一昨日(${wd})`;
+  return `${-diff}日前(${wd})`;
+}
+
 // 予定を「質問の燃料」としてプロンプトに渡せる文字列に整形する。
-// 例: 「06-17(火) 14:00-15:30 ゼミ [大学] ←今日」
+// 各行の先頭に相対ラベル（今日/明日/N日後）を付け、AIが日付計算しなくて済むようにする。
+// 例: 「[明日(水)] 06-17 14:00-15:30 ゼミ [大学]」
 export function formatEventsForPrompt(events: CalendarEvent[], todayDate?: string): string {
   if (events.length === 0) return '(この期間の予定なし)';
   return events
     .map((e) => {
-      const wd = jstWeekday(e.date);
       const md = e.date.slice(5); // MM-DD
       const when = e.allDay ? '終日' : `${e.start}-${e.end}`;
       const flags = e.tentative ? ' (仮)' : '';
       const notes = e.notes ? ` ※${e.notes}` : '';
-      const marker =
-        todayDate && e.date === todayDate
-          ? ' ←今日'
-          : todayDate && e.date === addDays(todayDate, 1)
-            ? ' ←明日'
-            : '';
-      return `${md}(${wd}) ${when} ${e.title} [${e.category}]${flags}${notes}${marker}`;
+      const rel = todayDate ? `[${relativeLabel(todayDate, e.date)}] ` : '';
+      return `${rel}${md} ${when} ${e.title} [${e.category}]${flags}${notes}`;
     })
     .join('\n');
-}
-
-function addDays(date: string, days: number): string {
-  const [y, m, d] = date.split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  dt.setUTCDate(dt.getUTCDate() + days);
-  return dt.toISOString().slice(0, 10);
 }

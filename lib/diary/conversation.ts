@@ -41,11 +41,21 @@ function persona(): string {
 
 function buildSystemPrompt(calendar: CalendarEvent[], extraContext: string): string {
   const today = jstDate(0);
-  const todayLine = `【今日の日付】${today}(${jstWeekday(today)})  ※曜日や「今日/明日」は必ずこれを基準に判断すること`;
-  return [
-    persona(),
+  const todayHeader = [
+    '================================',
+    `今日は ${today} (${jstWeekday(today)}曜日) です。`,
     '',
-    todayLine,
+    '【日付に関する厳格なルール】',
+    '- 上の「今日の日付」と、各予定の先頭に書いてある [今日/明日/明後日/N日後] のラベルを、そのまま正として使うこと。',
+    '- 予定の MM-DD から自分で曜日や「今日かどうか」を計算しないこと。必ず先頭ラベルを参照する。',
+    '- ユーザーが特定の日について聞いていない限り、「今日」「明日」以外の予定を「今日」と呼ばない。',
+    '- 「昨日」「今日」「明日」と言うときは、必ず上のラベルと一致させる。',
+    '================================',
+  ].join('\n');
+  return [
+    todayHeader,
+    '',
+    persona(),
     '',
     SLOT_GUIDANCE,
     '',
