@@ -140,9 +140,11 @@ function HomeInner() {
           onTimetable={() => setImportOpen(true)}
         />
 
-        {/* ビュー切替 + ナビゲーション */}
+        {/* ビュー切替 (常時表示) */}
+        <ViewSwitcher active="today" />
+
+        {/* PC 用の補助ナビ */}
         <div className="hidden items-center gap-2 sm:flex">
-          <ViewSwitcher active="today" />
           <Link
             href="/subjects"
             className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"

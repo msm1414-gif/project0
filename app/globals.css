@@ -105,6 +105,39 @@ textarea {
   border: 1px solid var(--border);
 }
 
+/* Bottom tab spacing: applied to MobileShell wrapper. Pure CSS so it does not
+ * depend on JS detection and avoids hydration races. */
+.mobile-shell-pad {
+  min-height: 100dvh;
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}
+@media (min-width: 640px) {
+  .mobile-shell-pad {
+    padding-bottom: 0;
+  }
+}
+
+/* Full-viewport pages (calendar, week) that reserve room for the mobile bottom
+ * tab on small screens. */
+.viewport-with-tab {
+  height: calc(100dvh - 64px - env(safe-area-inset-bottom));
+}
+@media (min-width: 640px) {
+  .viewport-with-tab {
+    height: 100dvh;
+  }
+}
+
+/* Week view hour gutter — narrower on mobile to give day columns more room. */
+:root {
+  --week-gutter: 44px;
+}
+@media (min-width: 640px) {
+  :root {
+    --week-gutter: 60px;
+  }
+}
+
 /* Smooth default transitions for interactive elements */
 button,
 a,

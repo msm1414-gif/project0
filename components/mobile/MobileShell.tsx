@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
@@ -14,35 +14,10 @@ import {
   SettingsIcon,
 } from '@/components/ui/Icon';
 
-function isMobileUA(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
-
-const BAR_HEIGHT_PX = 64;
-
 export default function MobileShell({ children }: { children: React.ReactNode }) {
-  const isMobile = useSyncExternalStore(
-    (cb) => {
-      window.addEventListener('resize', cb);
-      return () => window.removeEventListener('resize', cb);
-    },
-    () => isMobileUA() || window.innerWidth < 640,
-    () => false,
-  );
-
-  if (!isMobile) return <>{children}</>;
-
   return (
     <>
-      <div
-        style={{
-          paddingBottom: `calc(${BAR_HEIGHT_PX}px + env(safe-area-inset-bottom))`,
-          minHeight: '100dvh',
-        }}
-      >
-        {children}
-      </div>
+      <div className="mobile-shell-pad">{children}</div>
       <BottomTabBar />
     </>
   );
@@ -87,7 +62,7 @@ function BottomTabBar() {
   return (
     <>
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--border)] bg-[var(--bg-elev)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--bg-elev)]/80"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--border)] bg-[var(--bg-elev)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--bg-elev)]/80 sm:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {tabs.map((t) => (

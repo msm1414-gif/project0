@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { addDays, addMonths, eachDayOfInterval, endOfWeek, startOfWeek } from 'date-fns';
@@ -26,11 +26,6 @@ import {
 import ViewSwitcher from '@/components/ui/ViewSwitcher';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
-
-function isMobileUA(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
 
 const RANGE_BEFORE_MONTHS = 6;
 const RANGE_AFTER_MONTHS = 12;
@@ -179,46 +174,33 @@ export default function MobileCalendarView() {
   const [visYear, visMonth] = visibleMonth.split('-').map(Number);
   const monthLabel = `${visYear}年${visMonth}月`;
 
-  const isMobile = useSyncExternalStore(
-    (cb) => {
-      window.addEventListener('resize', cb);
-      return () => window.removeEventListener('resize', cb);
-    },
-    () => isMobileUA() || window.innerWidth < 640,
-    () => false,
-  );
-
   return (
-    <div
-      className="flex flex-col"
-      style={{
-        height: isMobile
-          ? 'calc(100dvh - 64px - env(safe-area-inset-bottom))'
-          : '100dvh',
-      }}
-    >
-      {/* PC ヘッダー */}
-      {!isMobile && (
-        <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--bg-elev)] px-5 py-3">
-          <h1 className="mr-auto text-lg font-semibold tracking-tight">カレンダー</h1>
-          <ViewSwitcher active="month" />
-          <Link
-            href="/subjects"
-            className="flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
-          >
-            <BookOpenIcon size={14} />
-            科目
-          </Link>
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
-            aria-label="設定"
-          >
-            <SettingsIcon size={15} />
-          </button>
-        </header>
-      )}
+    <div className="viewport-with-tab flex flex-col">
+      {/* ビュー切替 (常時、上に常駐) */}
+      <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--bg-elev)] px-3 py-2 sm:hidden">
+        <ViewSwitcher active="month" />
+      </div>
+
+      {/* PC ヘッダー (≥640px) */}
+      <header className="hidden items-center gap-2 border-b border-[var(--border)] bg-[var(--bg-elev)] px-5 py-3 sm:flex">
+        <h1 className="mr-auto text-lg font-semibold tracking-tight">カレンダー</h1>
+        <ViewSwitcher active="month" />
+        <Link
+          href="/subjects"
+          className="flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
+        >
+          <BookOpenIcon size={14} />
+          科目
+        </Link>
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
+          aria-label="設定"
+        >
+          <SettingsIcon size={15} />
+        </button>
+      </header>
 
       {/* Day-of-week header */}
       <div className="grid grid-cols-7 border-b border-[var(--border)] bg-[var(--bg-elev)] text-center text-[11px] font-medium uppercase tracking-wide">

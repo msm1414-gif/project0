@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { addDays, startOfWeek } from 'date-fns';
@@ -37,11 +37,6 @@ import ViewSwitcher from '@/components/ui/ViewSwitcher';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
-
-function isMobileUA(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
 
 type Selection = { date: string; startMinutes: number; endMinutes: number };
 
@@ -259,26 +254,10 @@ function WeekInner() {
   const endDate = addDays(weekStart, 6);
   const rangeLabel = `${weekStart.getFullYear()}.${String(weekStart.getMonth() + 1).padStart(2, '0')}.${String(weekStart.getDate()).padStart(2, '0')} – ${String(endDate.getMonth() + 1).padStart(2, '0')}.${String(endDate.getDate()).padStart(2, '0')}`;
 
-  const isMobile = useSyncExternalStore(
-    (cb) => {
-      window.addEventListener('resize', cb);
-      return () => window.removeEventListener('resize', cb);
-    },
-    () => isMobileUA() || window.innerWidth < 640,
-    () => false,
-  );
-
-  const gutterPx = isMobile ? 44 : 60;
+  const gridColumns = 'var(--week-gutter) repeat(7, 1fr)';
 
   return (
-    <div
-      className="flex flex-col"
-      style={{
-        height: isMobile
-          ? 'calc(100dvh - 64px - env(safe-area-inset-bottom))'
-          : '100dvh',
-      }}
-    >
+    <div className="viewport-with-tab flex flex-col">
       <header className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] bg-[var(--bg-elev)] px-4 py-3">
         <h1 className="tabular mr-auto text-lg font-semibold tracking-tight sm:text-xl">
           {rangeLabel}
@@ -311,8 +290,11 @@ function WeekInner() {
           </button>
         </div>
 
+        {/* ビュー切替 (常時表示) */}
+        <ViewSwitcher active="week" />
+
+        {/* PC 補助ナビ */}
         <div className="hidden items-center gap-2 sm:flex">
-          <ViewSwitcher active="week" />
           <Link
             href="/subjects"
             className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] px-3 py-1.5 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg)]"
@@ -334,7 +316,7 @@ function WeekInner() {
       {/* Sticky day-of-week header */}
       <div
         className="grid border-b border-[var(--border)] bg-[var(--bg-elev)]"
-        style={{ gridTemplateColumns: `${gutterPx}px repeat(7, 1fr)` }}
+        style={{ gridTemplateColumns: gridColumns }}
       >
         <div className="border-r border-[var(--border)]" />
         {days.map((date) => {
@@ -397,7 +379,7 @@ function WeekInner() {
           <div
             className="relative grid"
             style={{
-              gridTemplateColumns: `${gutterPx}px repeat(7, 1fr)`,
+              gridTemplateColumns: gridColumns,
               height: GRID_HEIGHT,
             }}
           >
