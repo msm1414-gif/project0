@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import SettingsDialog from '@/components/settings/SettingsDialog';
+import TodoQuickAddFab from '@/components/todo/TodoQuickAddFab';
 import { todayStr } from '@/lib/time';
 import {
   CalendarIcon,
@@ -18,17 +19,25 @@ export default function MobileShell({ children }: { children: React.ReactNode })
   return (
     <>
       <div className="mobile-shell-pad">{children}</div>
+      <TodoQuickAddFab />
       <BottomTabBar />
     </>
   );
 }
 
 function BottomTabBar() {
+  const router = useRouter();
   const pathname = usePathname() ?? '/';
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const today = todayStr();
 
-  const tabs = [
+  function goToTodayTimebox(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    // Recompute "today" at click time so a stale value cached at SSR / earlier
+    // render does not send the user to yesterday after midnight.
+    router.push(`/?date=${todayStr()}`);
+  }
+
+  const linkTabs = [
     {
       key: 'cal',
       Icon: CalendarIcon,
@@ -42,13 +51,6 @@ function BottomTabBar() {
       label: '週',
       href: '/week',
       active: pathname.startsWith('/week'),
-    },
-    {
-      key: 'today',
-      Icon: CalendarTodayIcon,
-      label: '今日',
-      href: `/?date=${today}`,
-      active: pathname === '/',
     },
     {
       key: 'todo',
@@ -65,18 +67,53 @@ function BottomTabBar() {
         className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--border)] bg-[var(--bg-elev)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--bg-elev)]/80 sm:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        {tabs.map((t) => (
-          <Link
-            key={t.key}
-            href={t.href}
-            prefetch={false}
-            className="group flex items-center justify-center py-2 outline-none"
-          >
-            <TabContent active={t.active} label={t.label}>
-              <t.Icon size={20} />
-            </TabContent>
-          </Link>
-        ))}
+        {/* 月 */}
+        <Link
+          key={linkTabs[0].key}
+          href={linkTabs[0].href}
+          prefetch={false}
+          className="group flex items-center justify-center py-2 outline-none"
+        >
+          <TabContent active={linkTabs[0].active} label={linkTabs[0].label}>
+            <CalendarIcon size={20} />
+          </TabContent>
+        </Link>
+
+        {/* 週 */}
+        <Link
+          key={linkTabs[1].key}
+          href={linkTabs[1].href}
+          prefetch={false}
+          className="group flex items-center justify-center py-2 outline-none"
+        >
+          <TabContent active={linkTabs[1].active} label={linkTabs[1].label}>
+            <CalendarWeekIcon size={20} />
+          </TabContent>
+        </Link>
+
+        {/* 今日 — programmatic navigation with fresh today() */}
+        <button
+          type="button"
+          onClick={goToTodayTimebox}
+          className="group flex items-center justify-center py-2 outline-none"
+        >
+          <TabContent active={pathname === '/'} label="今日">
+            <CalendarTodayIcon size={20} />
+          </TabContent>
+        </button>
+
+        {/* ToDo */}
+        <Link
+          key={linkTabs[2].key}
+          href={linkTabs[2].href}
+          prefetch={false}
+          className="group flex items-center justify-center py-2 outline-none"
+        >
+          <TabContent active={linkTabs[2].active} label={linkTabs[2].label}>
+            <CheckSquareIcon size={20} />
+          </TabContent>
+        </Link>
+
         <button
           type="button"
           onClick={() => setSettingsOpen(true)}
