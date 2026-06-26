@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import SettingsDialog from '@/components/settings/SettingsDialog';
 import TodoQuickAddFab from '@/components/todo/TodoQuickAddFab';
@@ -26,15 +26,20 @@ export default function MobileShell({ children }: { children: React.ReactNode })
 }
 
 function BottomTabBar() {
-  const router = useRouter();
   const pathname = usePathname() ?? '/';
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   function goToTodayTimebox(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
-    // Recompute "today" at click time so a stale value cached at SSR / earlier
-    // render does not send the user to yesterday after midnight.
-    router.push(`/?date=${todayStr()}`);
+    // Compute today fresh and force a full navigation. router.push was
+    // observed to silently no-op in PWA / Safari edge cases (stale RSC
+    // cache, hydration boundary, same-pathname new-search), so we use
+    // window.location.assign to guarantee the user lands on today's
+    // timebox view.
+    const target = `/?date=${todayStr()}`;
+    if (typeof window !== 'undefined') {
+      window.location.assign(target);
+    }
   }
 
   const linkTabs = [

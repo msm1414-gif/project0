@@ -14,7 +14,7 @@ const items: { key: ViewKey; label: string; href: string; Icon: typeof CalendarI
 
 export default function ViewSwitcher({ active }: { active?: ViewKey }) {
   return (
-    <div className="flex items-center gap-0.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] p-0.5 shadow-sm">
+    <div className="hidden items-center gap-0.5 rounded-full border border-[var(--border)] bg-[var(--bg-elev)] p-0.5 shadow-sm sm:flex">
       {items.map((it) => {
         const isActive = active === it.key;
         return (

@@ -18,7 +18,6 @@ import type { Event } from '@/lib/types';
 import {
   ArrowLeftRightIcon,
   BookOpenIcon,
-  CalendarWeekIcon,
   CloseIcon,
   PlusIcon,
   SettingsIcon,
@@ -176,12 +175,7 @@ export default function MobileCalendarView() {
 
   return (
     <div className="viewport-with-tab flex flex-col">
-      {/* ビュー切替 (常時、上に常駐) */}
-      <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--bg-elev)] px-3 py-2 sm:hidden">
-        <ViewSwitcher active="month" />
-      </div>
-
-      {/* PC ヘッダー (≥640px) */}
+      {/* PC ヘッダー (≥640px) — モバイルは下部タブで月/週/今日を切替 */}
       <header className="hidden items-center gap-2 border-b border-[var(--border)] bg-[var(--bg-elev)] px-5 py-3 sm:flex">
         <h1 className="mr-auto text-lg font-semibold tracking-tight">カレンダー</h1>
         <ViewSwitcher active="month" />
@@ -356,27 +350,16 @@ export default function MobileCalendarView() {
         </div>
       )}
 
-      {/* Sub-toolbar */}
-      <div className="grid grid-cols-[1fr_1fr_2fr_1fr_1fr] items-center gap-1 border-t border-[var(--border)] bg-[var(--bg-elev)] px-3 py-2">
+      {/* Sub-toolbar — 表示中の月ラベルと追加系操作。今日/週への切替は下部タブで */}
+      <div className="grid grid-cols-[2fr_1fr_1fr] items-center gap-1 border-t border-[var(--border)] bg-[var(--bg-elev)] px-3 py-2">
         <button
           type="button"
           onClick={jumpToToday}
-          className="flex h-9 items-center justify-center rounded-full text-sm font-medium text-[var(--fg-muted)] hover:bg-[var(--bg-soft)] hover:text-[var(--fg)]"
+          className="tabular flex h-9 items-center justify-center rounded-full text-sm font-semibold tracking-tight text-[var(--fg)] hover:bg-[var(--bg-soft)]"
+          title="現在月までスクロール"
         >
-          今日
-        </button>
-        <Link
-          href="/week"
-          className="flex h-9 items-center justify-center gap-1 rounded-full text-sm font-medium text-[var(--fg-muted)] hover:bg-[var(--bg-soft)] hover:text-[var(--fg)]"
-          aria-label="週ビュー"
-          title="週ビュー"
-        >
-          <CalendarWeekIcon size={16} />
-          週
-        </Link>
-        <div className="tabular text-center text-sm font-semibold tracking-tight text-[var(--fg)]">
           {monthLabel}
-        </div>
+        </button>
         <button
           type="button"
           onClick={() => setAddOpen(today)}
