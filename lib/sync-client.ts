@@ -54,3 +54,8 @@ export function shareUrlFor(token: string): string {
   if (typeof window === 'undefined') return '';
   return `${window.location.origin}/?t=${token}`;
 }
+
+export function aiUrlFor(token: string): string {
+  if (typeof window === 'undefined') return '';
+  return `${window.location.origin}/api/ai/${token}.md`;
+}

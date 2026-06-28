@@ -5,7 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { generateShareToken, loadSettings, saveSettings } from '@/lib/settings';
 import { testNotion } from '@/lib/notion-client';
 import { matchesCircleKeywords } from '@/lib/categorize';
-import { icsUrlFor, shareUrlFor } from '@/lib/sync-client';
+import { aiUrlFor, icsUrlFor, shareUrlFor } from '@/lib/sync-client';
 import {
   getCurrentSubscription,
   isIOS,
@@ -77,6 +77,7 @@ function Body({ onClose }: { onClose: () => void }) {
   const [pull, setPull] = useState<PullState>({ status: 'idle' });
   const [copiedIcs, setCopiedIcs] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
+  const [copiedAi, setCopiedAi] = useState(false);
 
   const events = useApp((s) => s.events);
   const pushNow = useApp((s) => s.pushNow);
@@ -85,6 +86,7 @@ function Body({ onClose }: { onClose: () => void }) {
 
   const icsUrl = shareToken ? icsUrlFor(shareToken) : '';
   const shareUrl = shareToken ? shareUrlFor(shareToken) : '';
+  const aiUrl = shareToken ? aiUrlFor(shareToken) : '';
 
   async function onTest() {
     if (!token || !parentPageId) return;
@@ -148,17 +150,20 @@ function Body({ onClose }: { onClose: () => void }) {
     setPull({ status: 'idle' });
   }
 
-  async function onCopy(target: 'ics' | 'share') {
-    const text = target === 'ics' ? icsUrl : shareUrl;
+  async function onCopy(target: 'ics' | 'share' | 'ai') {
+    const text = target === 'ics' ? icsUrl : target === 'share' ? shareUrl : aiUrl;
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
       if (target === 'ics') {
         setCopiedIcs(true);
         setTimeout(() => setCopiedIcs(false), 1500);
-      } else {
+      } else if (target === 'share') {
         setCopiedShare(true);
         setTimeout(() => setCopiedShare(false), 1500);
+      } else {
+        setCopiedAi(true);
+        setTimeout(() => setCopiedAi(false), 1500);
       }
     } catch {
       /* ignore */
@@ -398,6 +403,42 @@ function Body({ onClose }: { onClose: () => void }) {
               >
                 {copiedIcs ? '✓ コピー' : 'コピー'}
               </button>
+            </div>
+          </div>
+
+          <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-700">
+            <div className="text-sm text-slate-600 dark:text-slate-300">
+              AI 用エクスポート URL（読み取り専用・Markdown）
+            </div>
+            <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+              Claude などに貼ると、時間割・今日/今後7日間/過去7日間の予定・ToDo を一括で読み込めます。
+            </div>
+            <div className="mt-1 flex gap-2">
+              <input
+                readOnly
+                value={aiUrl}
+                className="flex-1 rounded border border-slate-300 bg-slate-50 px-2 py-1.5 font-mono text-xs dark:border-slate-700 dark:bg-slate-800"
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <button
+                type="button"
+                onClick={() => onCopy('ai')}
+                disabled={!aiUrl}
+                className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:hover:bg-slate-800"
+              >
+                {copiedAi ? '✓ コピー' : 'コピー'}
+              </button>
+              {aiUrl && (
+                <a
+                  href={aiUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+                  title="ブラウザで開いて中身を確認"
+                >
+                  開く
+                </a>
+              )}
             </div>
           </div>
 
