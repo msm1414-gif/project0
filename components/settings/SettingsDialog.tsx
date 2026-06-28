@@ -5,7 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { generateShareToken, loadSettings, saveSettings } from '@/lib/settings';
 import { testNotion } from '@/lib/notion-client';
 import { matchesCircleKeywords } from '@/lib/categorize';
-import { aiUrlFor, icsUrlFor, shareUrlFor } from '@/lib/sync-client';
+import { aiUrlFor, clockUrlFor, icsUrlFor, shareUrlFor } from '@/lib/sync-client';
 import {
   getCurrentSubscription,
   isIOS,
@@ -78,6 +78,7 @@ function Body({ onClose }: { onClose: () => void }) {
   const [copiedIcs, setCopiedIcs] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
   const [copiedAi, setCopiedAi] = useState(false);
+  const [copiedClock, setCopiedClock] = useState(false);
 
   const events = useApp((s) => s.events);
   const pushNow = useApp((s) => s.pushNow);
@@ -87,6 +88,7 @@ function Body({ onClose }: { onClose: () => void }) {
   const icsUrl = shareToken ? icsUrlFor(shareToken) : '';
   const shareUrl = shareToken ? shareUrlFor(shareToken) : '';
   const aiUrl = shareToken ? aiUrlFor(shareToken) : '';
+  const clockUrl = shareToken ? clockUrlFor(shareToken) : '';
 
   async function onTest() {
     if (!token || !parentPageId) return;
@@ -150,8 +152,15 @@ function Body({ onClose }: { onClose: () => void }) {
     setPull({ status: 'idle' });
   }
 
-  async function onCopy(target: 'ics' | 'share' | 'ai') {
-    const text = target === 'ics' ? icsUrl : target === 'share' ? shareUrl : aiUrl;
+  async function onCopy(target: 'ics' | 'share' | 'ai' | 'clock') {
+    const text =
+      target === 'ics'
+        ? icsUrl
+        : target === 'share'
+          ? shareUrl
+          : target === 'ai'
+            ? aiUrl
+            : clockUrl;
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
@@ -161,13 +170,21 @@ function Body({ onClose }: { onClose: () => void }) {
       } else if (target === 'share') {
         setCopiedShare(true);
         setTimeout(() => setCopiedShare(false), 1500);
-      } else {
+      } else if (target === 'ai') {
         setCopiedAi(true);
         setTimeout(() => setCopiedAi(false), 1500);
+      } else {
+        setCopiedClock(true);
+        setTimeout(() => setCopiedClock(false), 1500);
       }
     } catch {
       /* ignore */
     }
+  }
+
+  function openClockWindow() {
+    if (!clockUrl) return;
+    window.open(clockUrl, 'timebox-clock', 'popup=yes,width=380,height=480');
   }
 
   async function onEnableNotifications() {
@@ -439,6 +456,44 @@ function Body({ onClose }: { onClose: () => void }) {
                   開く
                 </a>
               )}
+            </div>
+          </div>
+
+          <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-700">
+            <div className="text-sm text-slate-600 dark:text-slate-300">
+              PC 用 時計ウィンドウ
+            </div>
+            <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+              現在時刻 + 進行中の予定 (残り分) + 次の予定を表示する小窓。Chrome / Edge で「アプリとしてインストール」すると、フレームレスのデスクトップアプリとして使えます。
+              <br />
+              <span className="text-slate-400 dark:text-slate-500">
+                自動起動: Win は <span className="font-mono">shell:startup</span> にショートカット配置、Mac はインストール後 Dock アイコンを右クリック {'>'} Options {'>'} Open at Login。
+              </span>
+            </div>
+            <div className="mt-1.5 flex gap-2">
+              <input
+                readOnly
+                value={clockUrl}
+                className="flex-1 rounded border border-slate-300 bg-slate-50 px-2 py-1.5 font-mono text-xs dark:border-slate-700 dark:bg-slate-800"
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <button
+                type="button"
+                onClick={() => onCopy('clock')}
+                disabled={!clockUrl}
+                className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:hover:bg-slate-800"
+              >
+                {copiedClock ? '✓ コピー' : 'コピー'}
+              </button>
+              <button
+                type="button"
+                onClick={openClockWindow}
+                disabled={!clockUrl}
+                className="rounded bg-slate-900 px-3 py-1.5 text-sm text-white hover:opacity-90 disabled:opacity-40 dark:bg-white dark:text-slate-900"
+                title="小窓で開く (380×480)"
+              >
+                小窓で開く
+              </button>
             </div>
           </div>
 

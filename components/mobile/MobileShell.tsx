@@ -16,6 +16,13 @@ import {
 } from '@/components/ui/Icon';
 
 export default function MobileShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname() ?? '/';
+
+  // Desktop widget / always-on-top clock window — strip the bottom tab,
+  // the ToDo FAB and the standard padding so the page can fill a tiny
+  // PWA window without any nav chrome.
+  if (pathname.startsWith('/clock')) return <>{children}</>;
+
   return (
     <>
       <div className="mobile-shell-pad">{children}</div>

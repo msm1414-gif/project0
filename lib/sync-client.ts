@@ -59,3 +59,8 @@ export function aiUrlFor(token: string): string {
   if (typeof window === 'undefined') return '';
   return `${window.location.origin}/api/ai/${token}.md`;
 }
+
+export function clockUrlFor(token: string): string {
+  if (typeof window === 'undefined') return '';
+  return `${window.location.origin}/clock?t=${token}`;
+}
